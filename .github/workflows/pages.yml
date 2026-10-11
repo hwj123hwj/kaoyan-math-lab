@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: withastro/action@v3
+        with:
+          # node --test 直接导入 .ts 数据模块，需要 23.6+/24+ 的原生类型剥离
+          node-version: 24
       # withastro/action 检测到 package.json 会执行 npm install + npm run build（含 pagefind 索引）
       - run: npm test
       - uses: actions/upload-pages-artifact@v3
