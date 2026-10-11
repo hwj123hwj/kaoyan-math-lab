@@ -1,0 +1,38 @@
+---
+import Base from '../layouts/Base.astro';
+import DerivativeLab from '../components/labs/DerivativeLab.astro';
+import RiemannLab from '../components/labs/RiemannLab.astro';
+import TaylorLab from '../components/labs/TaylorLab.astro';
+import MatrixLab from '../components/labs/MatrixLab.astro';
+import ProbabilityLab from '../components/labs/ProbabilityLab.astro';
+import { labs } from '../data/labs';
+
+const intro: Record<string, string> = {
+  derivative: '对应课时：导数与切线。适合刚接触导数定义、或做题前想找回"变化率"手感的时候。',
+  riemann: '对应课时：定积分与黎曼和。理解"无限分割取极限"，比背十个积分公式都重要。',
+  taylor: '对应课时：泰勒公式。看清收敛半径，理解为什么泰勒展开只在一定范围内可靠。',
+  matrix: '对应课时：矩阵即变换。行列式、秩、特征向量的几何意义一次看全。',
+  probability: '对应课时：大数定律与中心极限定理。用真随机模拟看到频率稳定与钟形浮现。',
+};
+---
+<Base title="实验室 · 考研数学实验室">
+  <section class="hero">
+    <p class="kicker">动手区</p>
+    <h1>五个实验室</h1>
+    <p class="lead">全部本地运行：函数值与矩阵运算是精确计算，概率是浏览器真随机模拟。先猜结果，再动手验证。</p>
+  </section>
+
+  {labs.map((lab) => (
+    <section aria-label={lab.title} id={lab.id} style="scroll-margin-top:20px">
+      <div class="section-head">
+        <h2>{lab.title}</h2>
+        <span>{lab.course === 'calculus' ? '高数' : lab.course === 'linear-algebra' ? '线代' : '概率'} · {intro[lab.id]}</span>
+      </div>
+      {lab.id === 'derivative' && <DerivativeLab />}
+      {lab.id === 'riemann' && <RiemannLab />}
+      {lab.id === 'taylor' && <TaylorLab />}
+      {lab.id === 'matrix' && <MatrixLab />}
+      {lab.id === 'probability' && <ProbabilityLab />}
+    </section>
+  ))}
+</Base>

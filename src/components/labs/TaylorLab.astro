@@ -1,0 +1,129 @@
+---
+// 泰勒展开实验室：多项式逼近函数，阶数 n 可调，标出收敛半径边界。
+---
+<section class="lab" id="lab-taylor" aria-label="泰勒展开实验室">
+  <div class="lab-toolbar">
+    <label>函数 <select id="ty-f">
+      <option value="sin" selected>sin x</option>
+      <option value="cos">cos x</option>
+      <option value="exp">e^x</option>
+      <option value="log">ln(1+x)</option>
+      <option value="geom">1/(1−x)</option>
+    </select></label>
+    <label>阶数 n = <output id="ty-n-out">3</output> <input id="ty-n" type="range" min="0" max="15" step="1" value="3"></label>
+    <label>考察点 x₀ = <output id="ty-a-out">2.4</output> <input id="ty-a" type="range" min="-3.4" max="3.4" step="0.05" value="2.4"></label>
+    <button id="ty-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="ty-canvas" class="lab-canvas" height="360" aria-label="函数与其泰勒多项式"></canvas>
+  <div class="lab-readouts">
+    <div><span>真实值 f(x₀)</span><code id="ty-real">—</code></div>
+    <div><span>多项式 Pₙ(x₀)</span><code id="ty-poly">—</code></div>
+    <div><span>误差</span><code id="ty-err">—</code><small>n 越大越接近余项</small></div>
+  </div>
+  <p class="lab-message" id="ty-message" role="status">调大 n，观察虚线多项式如何"长成"原函数；再挪到收敛半径之外，看它失效。</p>
+</section>
+
+<script>
+import { fitCanvas, makeScale, drawAxes, plotFunction } from '../../lib/plot';
+
+interface Cfg { f: (x: number) => number; coeff: (k: number) => number; box: { xmin: number; xmax: number; ymin: number; ymax: number }; radius?: number; label: string; }
+const fact = (n: number): number => { let r = 1; for (let i = 2; i <= n; i++) r *= i; return r; };
+// coeff(k) 返回 x^k 的系数（在 0 处展开）
+const cfgs: Record<string, Cfg> = {
+  sin: {
+    f: Math.sin, coeff: (k) => (k % 2 === 1 ? (k % 4 === 1 ? 1 : -1) / fact(k) : 0),
+    box: { xmin: -7, xmax: 7, ymin: -2.2, ymax: 2.2 }, label: 'sin x',
+  },
+  cos: {
+    f: Math.cos, coeff: (k) => (k % 2 === 0 ? (k % 4 === 0 ? 1 : -1) / fact(k) : 0),
+    box: { xmin: -7, xmax: 7, ymin: -2.2, ymax: 2.2 }, label: 'cos x',
+  },
+  exp: {
+    f: Math.exp, coeff: (k) => 1 / fact(k),
+    box: { xmin: -5, xmax: 3.4, ymin: -1.2, ymax: 12 }, label: 'e^x',
+  },
+  log: {
+    f: (x) => Math.log(1 + x), coeff: (k) => (k === 0 ? 0 : (k % 2 === 1 ? 1 : -1) / k),
+    box: { xmin: -3.4, xmax: 5.4, ymin: -4.2, ymax: 2.6 }, radius: 1, label: 'ln(1+x)',
+  },
+  geom: {
+    f: (x) => 1 / (1 - x), coeff: (k) => 1,
+    box: { xmin: -2.6, xmax: 2.6, ymin: -3.2, ymax: 4.2 }, radius: 1, label: '1/(1−x)',
+  },
+};
+
+const canvas = document.getElementById('ty-canvas') as HTMLCanvasElement;
+const nInput = document.getElementById('ty-n') as HTMLInputElement;
+const aInput = document.getElementById('ty-a') as HTMLInputElement;
+const fSel = document.getElementById('ty-f') as HTMLSelectElement;
+const message = document.getElementById('ty-message')!;
+
+function poly(coeffs: (k: number) => number, n: number) {
+  return (x: number) => {
+    let r = 0;
+    for (let k = 0; k <= n; k++) r += coeffs(k) * Math.pow(x, k);
+    return r;
+  };
+}
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const cfg = cfgs[fSel.value];
+  const s = makeScale(cfg.box, w, h, 8);
+  drawAxes(ctx, s, cfg.box, 1, cfg.box.ymax > 6 ? 2 : 1);
+  const n = Number(nInput.value);
+  const a = Number(aInput.value);
+  nInput.disabled = fSel.value === 'geom'; // 1/(1−x) 各阶系数全为 1，n 到 15 已足够演示
+  document.getElementById('ty-n-out')!.textContent = String(n);
+  document.getElementById('ty-a-out')!.textContent = a.toFixed(2);
+
+  ctx.font = '12px ui-monospace, monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(80,80,110,.75)';
+  ctx.fillText(`f(x) = ${cfg.label}  ·  蓝实线 = f  ·  橙虚线 = P${n}(x)`, 12, 20);
+
+  if (cfg.radius !== undefined) {
+    ctx.setLineDash([4, 6]);
+    ctx.strokeStyle = 'rgba(200,60,60,.8)'; ctx.lineWidth = 1.4;
+    for (const b of [-cfg.radius, cfg.radius]) {
+      if (b > cfg.box.xmin && b < cfg.box.xmax) {
+        ctx.beginPath(); ctx.moveTo(s.x2px(b), 0); ctx.lineTo(s.x2px(b), h); ctx.stroke();
+        ctx.fillStyle = 'rgba(200,60,60,.9)';
+        ctx.fillText('收敛边界', s.x2px(b) + (b < 0 ? -76 : 6), 20);
+        ctx.fillStyle = 'rgba(80,80,110,.75)';
+      }
+    }
+    ctx.setLineDash([]);
+  }
+
+  const p = poly(cfg.coeff, n);
+  ctx.setLineDash([7, 5]);
+  ctx.strokeStyle = 'rgba(230,120,40,.95)'; ctx.lineWidth = 2;
+  plotFunction(ctx, s, p);
+  ctx.setLineDash([]);
+  ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 2.2;
+  plotFunction(ctx, s, cfg.f);
+
+  const fa = cfg.f(a), pa = p(a);
+  ctx.beginPath(); ctx.arc(s.x2px(a), s.y2px(fa), 4.5, 0, Math.PI * 2); ctx.fillStyle = '#3b3f8f'; ctx.fill();
+  ctx.beginPath(); ctx.arc(s.x2px(a), s.y2px(pa), 4.5, 0, Math.PI * 2); ctx.fillStyle = 'rgba(230,120,40,.95)'; ctx.fill();
+
+  document.getElementById('ty-real')!.textContent = Number.isFinite(fa) ? fa.toFixed(4) : '不存在';
+  document.getElementById('ty-poly')!.textContent = pa.toFixed(4);
+  const err = Math.abs(fa - pa);
+  document.getElementById('ty-err')!.textContent = Number.isFinite(fa) ? err.toFixed(4) : '∞';
+  const nearBoundary = cfg.radius !== undefined && Math.abs(Math.abs(a) - cfg.radius) < 0.25;
+  message.textContent = nearBoundary
+    ? `接近收敛边界 |x| = ${cfg.radius}：不管 n 多大，多项式都追不上函数。泰勒级数只在自己收敛的范围内说话。`
+    : err < 0.05
+      ? `n = ${n}：在 x₀ = ${a.toFixed(2)} 处误差只有 ${err.toFixed(4)}。多项式已经"贴"上了函数。`
+      : `n = ${n}：误差 ${err.toFixed(4)}。提高阶数，让虚线再长大一点。`;
+}
+
+for (const el of [nInput, aInput, fSel]) el.addEventListener('input', draw);
+document.getElementById('ty-reset')!.addEventListener('click', () => {
+  fSel.value = 'sin'; nInput.value = '3'; aInput.value = '2.4'; draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>

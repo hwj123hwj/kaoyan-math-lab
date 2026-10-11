@@ -1,0 +1,117 @@
+---
+// 黎曼和实验室：矩形分割逼近定积分，观察误差随 n 增大而消失。
+---
+<section class="lab" id="lab-riemann" aria-label="黎曼和实验室">
+  <div class="lab-toolbar">
+    <label>函数与区间 <select id="ri-f">
+      <option value="quad" selected>x² · [0, 2] · 精确值 8/3</option>
+      <option value="sin">sin x · [0, π] · 精确值 2</option>
+      <option value="sqrt">√x · [0, 4] · 精确值 16/3</option>
+      <option value="inv">1/(1+x²) · [−2, 2] · 精确值 2arctan2</option>
+    </select></label>
+    <label>分割数 n = <output id="ri-n-out">12</output> <input id="ri-n" type="range" min="1" max="160" step="1" value="12"></label>
+    <label>取样方式 <select id="ri-mode">
+      <option value="left" selected>左端点</option>
+      <option value="mid">中点</option>
+      <option value="right">右端点</option>
+    </select></label>
+    <button id="ri-anim" class="button" type="button">逐渐加密</button>
+    <button id="ri-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="ri-canvas" class="lab-canvas" height="340" aria-label="定积分的矩形逼近"></canvas>
+  <div class="lab-readouts">
+    <div><span>矩形面积和</span><code id="ri-sum">—</code><small>Σ f(ξᵢ)·Δx</small></div>
+    <div><span>精确值</span><code id="ri-exact">—</code><small>牛顿–莱布尼茨给出</small></div>
+    <div><span>误差</span><code id="ri-err">—</code><small>和 − 精确值</small></div>
+  </div>
+  <p class="lab-message" id="ri-message" role="status">把 n 拉大，或点“逐渐加密”，看误差如何消失——这就是定积分的定义。</p>
+</section>
+
+<script>
+import { fitCanvas, makeScale, drawAxes, reducedMotion } from '../../lib/plot';
+
+type Cfg = { f: (x: number) => number; a: number; b: number; exact: number; ymin: number; ymax: number; ystep: number };
+const cfgs: Record<string, Cfg> = {
+  quad: { f: (x) => x * x, a: 0, b: 2, exact: 8 / 3, ymin: -0.4, ymax: 4.4, ystep: 1 },
+  sin: { f: Math.sin, a: 0, b: Math.PI, exact: 2, ymin: -0.3, ymax: 1.35, ystep: 0.5 },
+  sqrt: { f: Math.sqrt, a: 0, b: 4, exact: 16 / 3, ymin: -0.4, ymax: 2.4, ystep: 0.5 },
+  inv: { f: (x) => 1 / (1 + x * x), a: -2, b: 2, exact: 2 * Math.atan(2), ymin: -0.2, ymax: 1.25, ystep: 0.5 },
+};
+
+const canvas = document.getElementById('ri-canvas') as HTMLCanvasElement;
+const nInput = document.getElementById('ri-n') as HTMLInputElement;
+const nOut = document.getElementById('ri-n-out')!;
+const fSel = document.getElementById('ri-f') as HTMLSelectElement;
+const modeSel = document.getElementById('ri-mode') as HTMLSelectElement;
+const message = document.getElementById('ri-message')!;
+let timer: ReturnType<typeof setInterval> | null = null;
+function stop() { if (timer !== null) { clearInterval(timer); timer = null; document.getElementById('ri-anim')!.textContent = '逐渐加密'; } }
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const cfg = cfgs[fSel.value];
+  const pad = (cfg.b - cfg.a) * 0.08;
+  const box = { xmin: cfg.a - pad, xmax: cfg.b + pad, ymin: cfg.ymin, ymax: cfg.ymax };
+  const s = makeScale(box, w, h, 10);
+  drawAxes(ctx, s, box, 1, cfg.ystep);
+
+  const n = Number(nInput.value);
+  nOut.textContent = String(n);
+  const dx = (cfg.b - cfg.a) / n;
+  const mode = modeSel.value;
+  let sum = 0;
+  const pxA = s.x2px(cfg.a), pxB = s.x2px(cfg.b), px0 = s.y2px(0);
+
+  for (let i = 0; i < n; i++) {
+    const xi = cfg.a + i * dx;
+    const xs = mode === 'left' ? xi : mode === 'right' ? xi + dx : xi + dx / 2;
+    const y = cfg.f(xs);
+    sum += y * dx;
+    ctx.fillStyle = 'rgba(59,63,143,.28)';
+    ctx.strokeStyle = 'rgba(59,63,143,.75)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.rect(s.x2px(xi), Math.min(px0, s.y2px(y)), s.x2px(xi + dx) - s.x2px(xi), Math.abs(s.y2px(y) - px0));
+    ctx.fill(); ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  const steps = 400;
+  for (let i = 0; i <= steps; i++) {
+    const x = cfg.a + ((cfg.b - cfg.a) * i) / steps;
+    const px = s.x2px(x), py = s.y2px(cfg.f(x));
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+
+  const err = sum - cfg.exact;
+  document.getElementById('ri-sum')!.textContent = sum.toFixed(6);
+  document.getElementById('ri-exact')!.textContent = cfg.exact.toFixed(6);
+  document.getElementById('ri-err')!.textContent = (Math.abs(err) < 5e-7 ? '≈ 0' : err.toFixed(6));
+  message.textContent = n === 1
+    ? `n = 1：一个粗糙的矩形。误差 ${Math.abs(err).toFixed(4)}。现在加密它。`
+    : Math.abs(err) < 0.01
+      ? `n = ${n}：误差已小于 0.01。继续加密，和与精确值几乎分不出来——这就是"无限分割取极限"。`
+      : `n = ${n}：误差 ${Math.abs(err).toFixed(4)}。${mode === 'mid' ? '中点取样收敛得更快。' : '换成中点取样，同样 n 下误差通常更小。'}`;
+}
+
+for (const el of [nInput, fSel, modeSel]) el.addEventListener('input', () => { stop(); draw(); });
+document.getElementById('ri-anim')!.addEventListener('click', () => {
+  if (timer !== null) { stop(); return; }
+  if (reducedMotion()) { nInput.value = '160'; draw(); return; }
+  document.getElementById('ri-anim')!.textContent = '暂停';
+  timer = setInterval(() => {
+    const v = Number(nInput.value);
+    if (v >= 160) { stop(); return; }
+    nInput.value = String(Math.min(160, Math.ceil(v * 1.18 + 1)));
+    draw();
+  }, 90);
+});
+document.getElementById('ri-reset')!.addEventListener('click', () => {
+  stop(); nInput.value = '12'; fSel.value = 'quad'; modeSel.value = 'left'; draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>

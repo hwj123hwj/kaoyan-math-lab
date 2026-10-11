@@ -1,0 +1,136 @@
+---
+import katex from 'katex';
+import Base from '../layouts/Base.astro';
+
+/** 把 $...$ 中的 LaTeX 渲染为 KaTeX HTML（构建期完成） */
+function tex(input: string): string {
+  return input.replace(/\$([^$]+)\$/g, (_, expr: string) =>
+    katex.renderToString(expr, { throwOnError: true, output: 'html' }));
+}
+
+
+interface Row { k: string; v: string }
+interface Group { title: string; rows: Row[] }
+interface Block { course: string; hue: number; groups: Group[] }
+
+const blocks: Block[] = [
+  {
+    course: '高等数学', hue: 262,
+    groups: [
+      { title: '等价无穷小（x→0）', rows: [
+        { k: '基本替换', v: '$\\sin x \\sim x,\\ \\tan x \\sim x,\\ \\arcsin x \\sim x,\\ \\arctan x \\sim x$' },
+        { k: '指数对数', v: '$e^x-1 \\sim x,\\ \\ln(1+x) \\sim x,\\ a^x-1 \\sim x\\ln a$' },
+        { k: '二阶与幂', v: '$1-\\cos x \\sim \\dfrac{x^2}{2},\\ (1+x)^\\alpha-1 \\sim \\alpha x,\\ \\sqrt[n]{1+x}-1\\sim\\dfrac{x}{n}$' },
+      ]},
+      { title: '求导与微分', rows: [
+        { k: '四则', v: "$(uv)'=u'v+uv',\\ \\left(\\dfrac{u}{v}\\right)'=\\dfrac{u'v-uv'}{v^2}$" },
+        { k: '复合与反函数', v: "$[f(g(x))]'=f'(g)\\,g'(x),\\ \\dfrac{dy}{dx}=\\dfrac{1}{\\dfrac{dx}{dy}}$" },
+        { k: '参数方程', v: '$\\dfrac{dy}{dx}=\\dfrac{\\psi\'(t)}{\\varphi\'(t)},\\ \\dfrac{d^2y}{dx^2}=\\dfrac{\\psi\'\'\\varphi\'-\\psi\'\\varphi\'\'}{\\varphi\'^3}$' },
+        { k: '常用导数表', v: '$(x^\\alpha)\'=\\alpha x^{\\alpha-1},\\ (\\ln x)\'=\\dfrac1x,\\ (e^x)\'=e^x,\\ (\\sin x)\'=\\cos x,\\ (\\tan x)\'=\\sec^2 x$' },
+      ]},
+      { title: '中值定理与泰勒', rows: [
+        { k: '罗尔 / 拉格朗日', v: '$f(a)=f(b)\\Rightarrow\\exists\\xi,\\ f\'(\\xi)=0;\\quad f(b)-f(a)=f\'(\\xi)(b-a)$' },
+        { k: '柯西', v: '$\\dfrac{f(b)-f(a)}{g(b)-g(a)}=\\dfrac{f\'(\\xi)}{g\'(\\xi)}$' },
+        { k: '泰勒（拉格朗日余项）', v: '$f(x)=\\sum_{k=0}^{n}\\dfrac{f^{(k)}(x_0)}{k!}(x-x_0)^k+\\dfrac{f^{(n+1)}(\\xi)}{(n+1)!}(x-x_0)^{n+1}$' },
+      ]},
+      { title: '积分公式', rows: [
+        { k: '基本积分表', v: '$\\int x^\\alpha dx=\\dfrac{x^{\\alpha+1}}{\\alpha+1}+C,\\ \\int\\dfrac{dx}{x}=\\ln|x|+C,\\ \\int e^x dx=e^x+C,\\ \\int\\dfrac{dx}{1+x^2}=\\arctan x+C$' },
+        { k: '三角积分', v: '$\\int\\tan x\\,dx=-\\ln|\\cos x|+C,\\ \\int\\sec x\\,dx=\\ln|\\sec x+\\tan x|+C$' },
+        { k: '分部积分', v: '$\\int u\\,dv=uv-\\int v\\,du$（反对幂指三排序）' },
+        { k: '定积分性质', v: '$\\int_{-a}^{a}f=\\begin{cases}2\\int_0^a f,& f\\text{ 偶}\\\\0,& f\\text{ 奇}\\end{cases},\\quad \\int_0^{\\pi}xf(\\sin x)dx=\\dfrac{\\pi}{2}\\int_0^{\\pi}f(\\sin x)dx$' },
+        { k: '旋转体体积', v: '$V_x=\\pi\\int_a^b f^2(x)dx,\\quad V_y=2\\pi\\int_a^b x f(x)\\,dx$' },
+        { k: '弧长（数一）', v: '$s=\\int_a^b\\sqrt{1+f\'^2(x)}\\,dx$' },
+      ]},
+      { title: '级数', rows: [
+        { k: '几何级数', v: '$\\sum_{n=0}^{\\infty}x^n=\\dfrac{1}{1-x},\\ |x|<1$' },
+        { k: '常用展开', v: '$e^x=\\sum\\dfrac{x^n}{n!},\\ \\sin x=\\sum\\dfrac{(-1)^n x^{2n+1}}{(2n+1)!},\\ \\ln(1+x)=\\sum\\dfrac{(-1)^{n-1}x^n}{n}\\ (|x|<1)$' },
+        { k: '收敛半径', v: '$R=\\lim\\limits_{n\\to\\infty}\\left|\\dfrac{a_n}{a_{n+1}}\\right|$' },
+      ]},
+      { title: '微分方程', rows: [
+        { k: '一阶线性', v: '$y\'+P(x)y=Q(x)\\Rightarrow y=e^{-\\int P}\\left(\\int Q e^{\\int P}dx+C\\right)$' },
+        { k: '二阶常系数齐次', v: '$y\'\'+py\'+qy=0$：特征根 $r_{1,2}$，实异 $C_1e^{r_1x}+C_2e^{r_2x}$，重根 $(C_1+C_2x)e^{rx}$，共轭 $e^{\\alpha x}(C_1\\cos\\beta x+C_2\\sin\\beta x)$' },
+      ]},
+    ],
+  },
+  {
+    course: '线性代数', hue: 165,
+    groups: [
+      { title: '行列式', rows: [
+        { k: '性质速用', v: '$|AB|=|A||B|,\\ |A^T|=|A|,\\ |A^{-1}|=\\dfrac{1}{|A|},\\ |A^{*}|=|A|^{n-1},\\ |kA|=k^n|A|$' },
+        { k: '克拉默', v: '$x_i=\\dfrac{D_i}{D}\\ (D\\ne0)$' },
+      ]},
+      { title: '矩阵与秩', rows: [
+        { k: '伴随', v: '$AA^{*}=A^{*}A=|A|E$' },
+        { k: '秩的关系', v: '$r(A+B)\\le r(A)+r(B),\\ r(AB)\\ge r(A)+r(B)-n,\\ r(A^{*})=\\begin{cases}n,&r=n\\\\1,&r=n-1\\\\0,&r<n-1\\end{cases}$' },
+      ]},
+      { title: '向量组与方程组', rows: [
+        { k: '齐次基础解系', v: '$Ax=0$：$n-r(A)$ 个自由未知量' },
+        { k: '非齐次结构', v: '$x=\\eta^{*}+k_1\\xi_1+\\cdots+k_{n-r}\\xi_{n-r}$' },
+        { k: '线性相关判定', v: '$n$ 个 $n$ 维向量相关 $\\iff\\det=0$；部分相关则整体相关' },
+      ]},
+      { title: '特征值与二次型', rows: [
+        { k: '特征方程', v: '$\\det(A-\\lambda E)=0;\\quad \\sum\\lambda_i=\\operatorname{tr}(A),\\ \\prod\\lambda_i=\\det A$' },
+        { k: '相似对角化条件', v: '$n$ 个线性无关特征向量（$k$ 重根有 $k$ 个无关特征向量）' },
+        { k: '正定判定', v: '顺序主子式全 $>0$；或 $\\lambda_i$ 全 $>0$；$A^T=A$ 且 $x^TAx>0$' },
+        { k: '惯性定理', v: '正惯性指数 $p$、负惯性指数 $q$ 在合同变换下不变' },
+      ]},
+    ],
+  },
+  {
+    course: '概率论与数理统计', hue: 75,
+    groups: [
+      { title: '概率公式', rows: [
+        { k: '条件概率与乘法', v: '$P(AB)=P(A)P(B|A),\\quad P(A|B)=\\dfrac{P(AB)}{P(B)}$' },
+        { k: '全概率与贝叶斯', v: '$P(B)=\\sum P(A_i)P(B|A_i);\\quad P(A_j|B)=\\dfrac{P(A_j)P(B|A_j)}{\\sum P(A_i)P(B|A_i)}$' },
+        { k: '独立', v: '$P(AB)=P(A)P(B)$；$A$ 与 $B$ 独立则 $A$ 与 $\\bar B$ 也独立' },
+      ]},
+      { title: '常见分布', rows: [
+        { k: '二项 B(n,p)', v: '$P(X=k)=\\binom nk p^k(1-p)^{n-k},\\ E=np,\\ D=np(1-p)$' },
+        { k: '泊松 P(λ)', v: '$P(X=k)=\\dfrac{\\lambda^k}{k!}e^{-\\lambda},\\ E=D=\\lambda$' },
+        { k: '指数 E(λ)', v: '$f(x)=\\lambda e^{-\\lambda x}\\ (x>0),\\ E=\\dfrac1\\lambda,\\ D=\\dfrac{1}{\\lambda^2}$；无记忆性' },
+        { k: '正态 N(μ,σ²)', v: '$P(X\\le x)=\\Phi\\!\\left(\\dfrac{x-\\mu}{\\sigma}\\right)$；$\\Phi(-x)=1-\\Phi(x)$' },
+        { k: '均匀 U(a,b)', v: '$E=\\dfrac{a+b}{2},\\ D=\\dfrac{(b-a)^2}{12}$' },
+      ]},
+      { title: '数字特征', rows: [
+        { k: '方差', v: '$D(X)=E(X^2)-E^2(X);\\quad D(CX)=C^2D(X),\\ D(X\\pm Y)=D(X)+D(Y)\\ (\\text{独立})$' },
+        { k: '协方差', v: '$\\operatorname{Cov}(X,Y)=E(XY)-E(X)E(Y);\\ \\rho=\\dfrac{\\operatorname{Cov}}{\\sqrt{DX\\cdot DY}}$' },
+        { k: '切比雪夫', v: '$P(|X-E X|\\ge\\varepsilon)\\le\\dfrac{D X}{\\varepsilon^2}$' },
+      ]},
+      { title: '大数定律与中心极限定理', rows: [
+        { k: '辛钦大数定律', v: '独立同分布 + $EX$ 存在 $\\Rightarrow\\bar X_n\\xrightarrow{P}\\mu$' },
+        { k: '伯努利', v: '频率 $\\dfrac{n_A}{n}\\xrightarrow{P}p$' },
+        { k: '列维–林德伯格', v: '$\\dfrac{\\sum X_i-n\\mu}{\\sqrt n\\,\\sigma}\\approx N(0,1)$' },
+        { k: '棣莫弗–拉普拉斯', v: '$B(n,p)\\approx N\\left(np,\\ np(1-p)\\right)$' },
+      ]},
+      { title: '数理统计', rows: [
+        { k: '三大分布', v: '$\\chi^2(n)=\\sum_{1}^{n}Z_i^2\\ (Z_i\\sim N(0,1))$；$t(n)=\\dfrac{Z}{\\sqrt{\\chi^2(n)/n}}$；$F(m,n)=\\dfrac{\\chi^2(m)/m}{\\chi^2(n)/n}$' },
+        { k: '正态总体抽样', v: '$\\dfrac{\\bar X-\\mu}{\\sigma/\\sqrt n}\\sim N(0,1);\\quad \\dfrac{(n-1)S^2}{\\sigma^2}\\sim\\chi^2(n-1);\\quad \\bar X\\perp S^2$' },
+        { k: '最大似然', v: '$L(\\theta)=\\prod f(x_i;\\theta)$，最大化 $\\ln L$ 解 $\\dfrac{\\partial \\ln L}{\\partial \\theta}=0$' },
+      ]},
+    ],
+  },
+];
+---
+<Base title="公式速查 · 考研数学实验室" description="数学一三大课程的考前公式速查表。">
+  <section class="hero">
+    <p class="kicker">考前 30 分钟</p>
+    <h1>公式速查</h1>
+    <p class="lead">只收录数一常用、且推导路径容易忘的公式。建议自己推导一遍后再来对照——速查表是检验，不是拐杖。</p>
+  </section>
+  <div class="sheet">
+    {blocks.map((b) => (
+      <section aria-label={b.course}>
+        <h2>{b.course}</h2>
+        {b.groups.map((g) => (
+          <table>
+            <caption class="sr-only">{g.title}</caption>
+            <thead><tr><th scope="col" style="width:11rem">{g.title}</th><th scope="col">公式</th></tr></thead>
+            <tbody>
+              {g.rows.map((r) => <tr><th scope="row">{r.k}</th><td><span set:html={tex(r.v)} /></td></tr>)}
+            </tbody>
+          </table>
+        ))}
+      </section>
+    ))}
+  </div>
+</Base>

@@ -1,0 +1,117 @@
+---
+// 切线实验室：导数定义 f'(x)=lim_{h→0} [f(x+h)−f(x)]/h 的可视化。
+---
+<section class="lab" id="lab-derivative" aria-label="切线实验室">
+  <div class="lab-toolbar">
+    <label>函数 <select id="der-f">
+      <option value="quad" selected>x²</option>
+      <option value="sin">sin x</option>
+      <option value="cubic">x³ − 3x</option>
+      <option value="exp">e^(x/2)</option>
+    </select></label>
+    <label>x = <input id="der-x" type="range" min="-3.8" max="3.8" step="0.02" value="0.6"></label>
+    <label>步长 h = <input id="der-h" type="range" min="0.01" max="2" step="0.01" value="2"></label>
+    <button id="der-anim" class="button" type="button">让 h → 0</button>
+    <button id="der-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="der-canvas" class="lab-canvas" height="360" aria-label="函数曲线、割线与切线"></canvas>
+  <div class="lab-readouts">
+    <div><span>割线斜率</span><code id="der-secant">—</code><small>[f(x+h) − f(x)] / h</small></div>
+    <div><span>切线斜率</span><code id="der-tangent">—</code><small>f′(x) 的精确值</small></div>
+    <div><span>差值</span><code id="der-gap">—</code><small>h 越小，割线越贴着切线</small></div>
+  </div>
+  <p class="lab-message" id="der-message" role="status">拖动 x 选取切点，把 h 拉小或点“让 h → 0”，观察割线如何倒向切线。</p>
+</section>
+
+<script>
+import { fitCanvas, makeScale, drawAxes, plotFunction, reducedMotion } from '../../lib/plot';
+
+const fns = {
+  quad: { f: (x: number) => x * x, d: (x: number) => 2 * x, label: "f(x) = x²，f′(x) = 2x" },
+  sin: { f: Math.sin, d: Math.cos, label: "f(x) = sin x，f′(x) = cos x" },
+  cubic: { f: (x: number) => x ** 3 - 3 * x, d: (x: number) => 3 * x * x - 3, label: "f(x) = x³ − 3x，f′(x) = 3x² − 3" },
+  exp: { f: (x: number) => Math.exp(x / 2), d: (x: number) => Math.exp(x / 2) / 2, label: "f(x) = e^(x/2)，f′(x) = e^(x/2) / 2" },
+} as const;
+type Key = keyof typeof fns;
+
+const canvas = document.getElementById('der-canvas') as HTMLCanvasElement;
+const xInput = document.getElementById('der-x') as HTMLInputElement;
+const hInput = document.getElementById('der-h') as HTMLInputElement;
+const fSelect = document.getElementById('der-f') as HTMLSelectElement;
+const message = document.getElementById('der-message')!;
+let timer: ReturnType<typeof setInterval> | null = null;
+
+function stop() { if (timer !== null) { clearInterval(timer); timer = null; document.getElementById('der-anim')!.textContent = '让 h → 0'; } }
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const box = { xmin: -4.5, xmax: 4.5, ymin: -4.5, ymax: 4.5 };
+  const s = makeScale(box, w, h, 8);
+  drawAxes(ctx, s, box);
+  const sel = fns[fSelect.value as Key];
+  const x = Number(xInput.value);
+  const hh = Number(hInput.value);
+
+  ctx.fillStyle = 'rgba(80,80,110,.65)';
+  ctx.font = '12px ui-monospace, monospace';
+  ctx.textAlign = 'left';
+  ctx.fillText(sel.label, 12, 20);
+
+  // 割线（虚线）与切线
+  const f = sel.f, d = sel.d;
+  const y1 = f(x), y2 = f(x + hh);
+  const secantSlope = (y2 - y1) / hh;
+  const tangentSlope = d(x);
+  ctx.setLineDash([6, 5]);
+  ctx.strokeStyle = 'rgba(230,120,40,.9)';
+  ctx.lineWidth = 1.6;
+  line(ctx, s, x - 4.4, y1 + secantSlope * (x - 4.4 - x), x + 4.4, y1 + secantSlope * 4.4);
+  ctx.setLineDash([]);
+  ctx.strokeStyle = '#3b3f8f';
+  ctx.lineWidth = 1.8;
+  line(ctx, s, x - 4.4, y1 - tangentSlope * 4.4, x + 4.4, y1 + tangentSlope * 4.4);
+
+  plotFunction(ctx, s, f);
+  ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 2.4; plotFunction(ctx, s, f);
+
+  // 曲线上两点
+  point(ctx, s, x, y1, '#3b3f8f');
+  point(ctx, s, x + hh, y2, 'rgba(230,120,40,.95)');
+
+  document.getElementById('der-secant')!.textContent = secantSlope.toFixed(4);
+  document.getElementById('der-tangent')!.textContent = tangentSlope.toFixed(4);
+  document.getElementById('der-gap')!.textContent = Math.abs(secantSlope - tangentSlope) < 5e-4 ? '≈ 0' : Math.abs(secantSlope - tangentSlope).toFixed(4);
+  message.textContent = hh <= 0.02
+    ? `h = ${hh.toFixed(2)}：割线已经贴上了切线。导数就是这个过程的极限值 ${tangentSlope.toFixed(4)}。`
+    : `h = ${hh.toFixed(2)}：割线（橙色虚线）还斜着。继续缩小 h，看它如何逼近切线（蓝色实线）。`;
+}
+
+function line(ctx: CanvasRenderingContext2D, s: ReturnType<typeof makeScale>, xa: number, ya: number, xb: number, yb: number) {
+  ctx.beginPath(); ctx.moveTo(s.x2px(xa), s.y2px(ya)); ctx.lineTo(s.x2px(xb), s.y2px(yb)); ctx.stroke();
+}
+function point(ctx: CanvasRenderingContext2D, s: ReturnType<typeof makeScale>, x: number, y: number, color: string) {
+  ctx.beginPath(); ctx.arc(s.x2px(x), s.y2px(y), 5, 0, Math.PI * 2);
+  ctx.fillStyle = color; ctx.fill();
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+for (const el of [xInput, hInput, fSelect]) el.addEventListener('input', () => { stop(); draw(); });
+document.getElementById('der-anim')!.addEventListener('click', () => {
+  if (timer !== null) { stop(); return; }
+  if (reducedMotion()) { hInput.value = '0.01'; draw(); return; }
+  document.getElementById('der-anim')!.textContent = '暂停';
+  timer = setInterval(() => {
+    const v = Number(hInput.value);
+    const next = Math.max(0.01, v * 0.82 - 0.005);
+    hInput.value = String(Math.round(next * 1000) / 1000);
+    draw();
+    if (next <= 0.011) stop();
+  }, 70);
+});
+document.getElementById('der-reset')!.addEventListener('click', () => {
+  stop(); xInput.value = '0.6'; hInput.value = '2'; fSelect.value = 'quad'; draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>

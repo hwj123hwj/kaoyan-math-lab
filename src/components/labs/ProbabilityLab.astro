@@ -1,0 +1,208 @@
+---
+// 概率模拟实验室：大数定律（样本均值的稳定）与中心极限定理（样本均值的正态形状）。
+---
+<section class="lab" id="lab-prob" aria-label="概率模拟实验室">
+  <div class="lab-toolbar">
+    <label>演示 <select id="pr-mode">
+      <option value="lln" selected>大数定律</option>
+      <option value="clt">中心极限定理</option>
+    </select></label>
+    <label id="pr-source-wrap">随机源 <select id="pr-source">
+      <option value="dice" selected>掷骰子（均值 3.5）</option>
+      <option value="coin">抛硬币（均值 0.5）</option>
+      <option value="uniform">U(0,1)（均值 0.5）</option>
+      <option value="expo">指数 λ=1（均值 1）</option>
+    </select></label>
+    <label id="pr-n-wrap" hidden>样本容量 n <select id="pr-n">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="5">5</option>
+      <option value="30" selected>30</option>
+    </select></label>
+    <button id="pr-one" class="button" type="button">来一点</button>
+    <button id="pr-many" class="button primary" type="button">批量模拟</button>
+    <button id="pr-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="pr-canvas" class="lab-canvas lab-canvas-tall" height="400" aria-label="随机模拟图"></canvas>
+  <div class="lab-readouts">
+    <div><span id="pr-count-label">已模拟次数</span><code id="pr-count">0</code></div>
+    <div><span id="pr-stat-label">当前样本均值</span><code id="pr-stat">—</code><small id="pr-stat-hint">对照理论均值</small></div>
+    <div><span>理论值</span><code id="pr-theory">—</code></div>
+  </div>
+  <p class="lab-message" id="pr-message" role="status">浏览器内的真实随机模拟（蒙特卡洛）。“来一点”每次 +1，“批量模拟”每次 +500。</p>
+</section>
+
+<script>
+import { fitCanvas } from '../../lib/plot';
+
+const canvas = document.getElementById('pr-canvas') as HTMLCanvasElement;
+const modeSel = document.getElementById('pr-mode') as HTMLSelectElement;
+const sourceSel = document.getElementById('pr-source') as HTMLSelectElement;
+const nSel = document.getElementById('pr-n') as HTMLSelectElement;
+const message = document.getElementById('pr-message')!;
+
+const SOURCES = {
+  dice: { label: '骰子', mean: 3.5, sd: Math.sqrt(35 / 12), draw: () => 1 + Math.floor(Math.random() * 6) },
+  coin: { label: '硬币', mean: 0.5, sd: 0.5, draw: () => (Math.random() < 0.5 ? 0 : 1) },
+  uniform: { label: 'U(0,1)', mean: 0.5, sd: Math.sqrt(1 / 12), draw: () => Math.random() },
+  expo: { label: '指数 λ=1', mean: 1, sd: 1, draw: () => -Math.log(1 - Math.random()) },
+} as const;
+type SourceKey = keyof typeof SOURCES;
+
+let mode: 'lln' | 'clt' = 'lln';
+let llnCount = 0;
+let llnSum = 0;
+let llnSeries: number[] = []; // 每次抽样后的累计均值
+let means: number[] = [];     // CLT：每组样本均值
+
+function sampleOnce(): number {
+  return SOURCES[sourceSel.value as SourceKey].draw();
+}
+
+function reset() {
+  llnCount = 0; llnSum = 0; llnSeries = []; means = [];
+  update();
+}
+
+function step(times: number) {
+  if (mode === 'lln') {
+    for (let i = 0; i < times; i++) {
+      llnSum += sampleOnce();
+      llnCount++;
+      llnSeries.push(llnSum / llnCount);
+    }
+    if (llnSeries.length > 60000) llnSeries = llnSeries.slice(-60000);
+    if (llnCount >= 500) message.textContent = `${llnCount} 次了：均值已经贴着 ${SOURCES[sourceSel.value as SourceKey].mean} 附近抖动，越往后抖得越小。`;
+  } else {
+    const n = Number(nSel.value);
+    for (let g = 0; g < times; g++) {
+      let s = 0;
+      for (let i = 0; i < n; i++) s += sampleOnce();
+      means.push(s / n);
+    }
+    if (means.length > 40000) means.splice(0, means.length - 40000);
+    if (means.length >= 500) message.textContent = n === 1
+      ? `${means.length} 组：直方图保持原分布的形状（n=1 时均值就是原变量，不会变成钟形）。把 n 调到 30 再试。`
+      : `${means.length} 组：均值直方图正在贴合红色正态曲线 N(μ, σ²/n)。原始分布越"怪"，这一幕越神奇。`;
+  }
+  update();
+}
+
+function update() {
+  const src = SOURCES[sourceSel.value as SourceKey];
+  if (mode === 'lln') {
+    document.getElementById('pr-count')!.textContent = String(llnCount);
+    document.getElementById('pr-stat')!.textContent = llnCount ? (llnSum / llnCount).toFixed(4) : '—';
+    document.getElementById('pr-theory')!.textContent = `E(X) = ${src.mean}`;
+  } else {
+    const n = Number(nSel.value);
+    document.getElementById('pr-count')!.textContent = String(means.length);
+    document.getElementById('pr-stat')!.textContent = means.length
+      ? (means.reduce((a, b) => a + b, 0) / means.length).toFixed(4) : '—';
+    document.getElementById('pr-theory')!.textContent = `μ = ${src.mean}，σ/√n = ${(src.sd / Math.sqrt(n)).toFixed(4)}`;
+  }
+  draw();
+}
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const src = SOURCES[sourceSel.value as SourceKey];
+  const padL = 44, padR = 14, padT = 30, padB = 30;
+  ctx.font = '12px ui-monospace, monospace';
+  ctx.fillStyle = 'rgba(80,80,110,.75)'; ctx.textAlign = 'left';
+  ctx.fillText(mode === 'lln'
+    ? `样本均值随抽样次数的变化 · ${src.label}`
+    : `样本均值的直方图（n = ${nSel.value}）· ${src.label}`, 12, 18);
+
+  const x0 = padL, x1 = w - padR, y0 = h - padB, y1 = padT;
+
+  if (mode === 'lln') {
+    const center = src.mean;
+    const spread = Math.max(0.6, recentDeviation(llnSeries, center));
+    const y2v = (v: number) => y0 - ((v - (center - spread)) / (2 * spread)) * (y0 - y1);
+    ctx.strokeStyle = 'rgba(70,70,90,.35)';
+    ctx.beginPath(); ctx.moveTo(x0, y2v(center)); ctx.lineTo(x1, y2v(center)); ctx.stroke();
+    ctx.fillStyle = 'rgba(70,70,90,.75)';
+    ctx.fillText(`理论均值 ${src.mean}`, x0 + 6, y2v(center) - 6);
+    const n = llnSeries.length;
+    if (n > 1) {
+      ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      const skip = Math.max(1, Math.floor(n / 4000));
+      let first = true;
+      for (let i = 0; i < n; i += skip) {
+        const px = x0 + (i / (n - 1)) * (x1 - x0);
+        const py = y2v(llnSeries[i]);
+        if (first) { ctx.moveTo(px, py); first = false; } else ctx.lineTo(px, py);
+      }
+      ctx.lineTo(x1, y2v(llnSeries[n - 1]));
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(70,70,90,.6)';
+      ctx.fillText('点“来一点”开始抽样', x0 + 20, (y0 + y1) / 2);
+    }
+  } else {
+    const n = Number(nSel.value);
+    const mu = src.mean, sig = src.sd / Math.sqrt(n);
+    const lo = mu - 3.6 * sig, hi = mu + 3.6 * sig;
+    const bins = 36;
+    const counts = new Array<number>(bins).fill(0);
+    for (const m of means) {
+      const bi = Math.floor(((m - lo) / (hi - lo)) * bins);
+      if (bi >= 0 && bi < bins) counts[bi]++;
+    }
+    const maxC = Math.max(1, ...counts);
+    const bw = (x1 - x0) / bins;
+    counts.forEach((c, i) => {
+      if (!c) return;
+      const bh = (c / maxC) * (y0 - y1);
+      ctx.fillStyle = 'rgba(59,63,143,.45)';
+      ctx.fillRect(x0 + i * bw + 1, y0 - bh, bw - 2, bh);
+    });
+    const total = means.length || 1;
+    const binW = (hi - lo) / bins;
+    ctx.strokeStyle = '#c84646'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let i = 0; i <= 200; i++) {
+      const x = lo + ((hi - lo) * i) / 200;
+      const density = Math.exp(-((x - mu) ** 2) / (2 * sig * sig)) / (sig * Math.sqrt(2 * Math.PI));
+      const expected = density * binW * total;
+      const py = y0 - (expected / maxC) * (y0 - y1);
+      const px = x0 + ((x - lo) / (hi - lo)) * (x1 - x0);
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(70,70,90,.75)';
+    ctx.textAlign = 'center';
+    ctx.fillText('μ', (x0 + x1) / 2, y0 + 18);
+    if (!means.length) {
+      ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(70,70,90,.6)';
+      ctx.fillText('点“来一点”抽几组样本，或“批量模拟”看钟形浮现', x0 + 20, (y0 + y1) / 2);
+    }
+  }
+}
+
+/** 近段均值偏离中心的幅度，用于自适应纵轴 */
+function recentDeviation(data: number[], center: number): number {
+  let m = 0;
+  for (let i = Math.max(0, data.length - 800); i < data.length; i++) m = Math.max(m, Math.abs(data[i] - center));
+  return m;
+}
+
+modeSel.addEventListener('change', () => {
+  mode = modeSel.value as 'lln' | 'clt';
+  document.getElementById('pr-n-wrap')!.hidden = mode !== 'clt';
+  document.getElementById('pr-count-label')!.textContent = mode === 'lln' ? '已模拟次数' : '已抽样本组数';
+  document.getElementById('pr-stat-label')!.textContent = mode === 'lln' ? '当前样本均值' : '各组均值的平均';
+  document.getElementById('pr-stat-hint')!.textContent = mode === 'lln' ? '对照理论均值' : '组数够多时它也贴近 μ';
+  reset();
+});
+document.getElementById('pr-one')!.addEventListener('click', () => step(1));
+document.getElementById('pr-many')!.addEventListener('click', () => step(500));
+document.getElementById('pr-reset')!.addEventListener('click', reset);
+sourceSel.addEventListener('change', reset);
+nSel.addEventListener('change', reset);
+window.addEventListener('resize', draw);
+update();
+</script>

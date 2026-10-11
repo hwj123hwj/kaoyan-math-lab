@@ -1,0 +1,61 @@
+---
+import katex from 'katex';
+import { quizzes } from '../data/quizzes';
+
+interface Props { quizId: string }
+const { quizId } = Astro.props;
+const set = quizzes[quizId];
+
+/** 把题面与选项中的 $...$ 渲染成 KaTeX HTML（构建期完成，运行时零渲染开销） */
+function tex(input: string): string {
+  return input.replace(/\$([^$]+)\$/g, (_, expr: string) =>
+    katex.renderToString(expr, { throwOnError: true, output: 'html' }));
+}
+
+const payload = set ? {
+  id: set.id,
+  title: set.title,
+  questions: set.questions.map((q) => ({
+    stem: tex(q.stem),
+    options: q.options.map(tex),
+    answer: q.answer,
+    explain: tex(q.explain),
+  })),
+} : null;
+---
+{set && payload && (
+<section class="quiz" id="quiz" aria-label={`随堂练习：${set.title}`}>
+  <div class="quiz-head">
+    <h2>随堂练习 · {set.title}</h2>
+    <span>选完立即判分，做完算一次练习记录</span>
+  </div>
+  <div class="quiz-body-root" data-quiz-root>
+    <div class="quiz-dots" data-quiz-dots aria-hidden="true"></div>
+    <div data-quiz-body></div>
+    <div class="quiz-actions">
+      <button type="button" class="button primary" data-quiz-next hidden>下一题 →</button>
+    </div>
+  </div>
+  <script type="application/json" data-quiz-payload set:html={JSON.stringify(payload).replace(/</g, '\\u003c')} />
+</section>
+)}
+
+<script>
+import { mountQuiz } from '../lib/quiz-engine';
+import { recordQuiz } from '../lib/progress';
+
+const root = document.querySelector<HTMLElement>('[data-quiz-root]');
+const payloadEl = document.querySelector<HTMLScriptElement>('[data-quiz-payload]');
+if (root && payloadEl) {
+  try {
+    const payload = JSON.parse(payloadEl.textContent || 'null');
+    if (payload?.questions?.length) {
+      mountQuiz(root, payload, (score) => {
+        const saved = recordQuiz(payload.id, score);
+        const note = document.querySelector<HTMLElement>('[data-quiz-storage-note]');
+        if (note) note.textContent = saved ? `最佳成绩已记录：${saved.quiz[payload.id]?.best ?? score} / ${payload.questions.length}` : '进度未能保存，刷新后可能丢失。';
+      });
+    }
+  } catch { /* 题库数据异常时不渲染交互，不影响正文 */ }
+}
+</script>

@@ -1,0 +1,60 @@
+---
+import Base from '../../layouts/Base.astro';
+import { courses, courseMap } from '../../data/courses';
+import { allLessons, lessonsOf, lessonPath } from '../../lib/lessons-server';
+
+export async function getStaticPaths() {
+  return courses.map((c) => ({ params: { id: c.id } }));
+}
+
+const { id } = Astro.params;
+const course = courseMap.get(id as never);
+if (!course) return Astro.redirect('/404');
+const all = await allLessons();
+const chapterLessons = await Promise.all(course.chapters.map((ch) => lessonsOf(course.id, ch.id)));
+---
+<Base title={`${course.name} · 考研数学实验室`} description={`${course.name}：${course.tagline} 按数学一考纲组织章节与课时。`}>
+  <section class="course-hero" style={`--course-hue:${course.hue}`}>
+    <span class="badge">数学一 · 卷面 {course.weight}</span>
+    <h1>{course.name}</h1>
+    <p>{course.tagline}　共 {course.chapters.length} 章 · 已上线课时 {all.filter((l) => l.data.course === course.id).length} 个。</p>
+  </section>
+
+  <section class="chapter-list" aria-label={`${course.name}章节`}>
+    {course.chapters.map((ch, i) => {
+      const items = chapterLessons[i];
+      return (
+        <article class="chapter-card" id={ch.id}>
+          <div class="chapter-head">
+            <h2>第 {ch.num} 章 · {ch.title}</h2>
+            <small>{ch.brief}</small>
+          </div>
+          <ul class="chapter-points">
+            {ch.points.map((p) => <li>{p}</li>)}
+          </ul>
+          {items.length > 0 ? (
+            <nav class="lesson-links" aria-label={`第 ${ch.num} 章课时`}>
+              {items.map((l) => (
+                <a class="lesson-link" href={lessonPath(l)} data-lesson-id={l.id}>
+                  <span class="done" data-lesson-done hidden>✓</span>
+                  <span>{l.data.order}. {l.data.title}</span>
+                  <small>{l.data.subtitle} · 约 {l.data.minutes} 分钟</small>
+                </a>
+              ))}
+            </nav>
+          ) : (
+            <p class="chapter-empty">讲解建设中。先按上面的考纲要点过教材，建设中内容会陆续上线。</p>
+          )}
+        </article>
+      );
+    })}
+  </section>
+
+  <script>
+    import { loadProgress } from '../../lib/progress';
+    const p = loadProgress();
+    document.querySelectorAll<HTMLAnchorElement>('[data-lesson-id]').forEach((a) => {
+      if (p.completed[a.dataset.lessonId!]) a.querySelector<HTMLElement>('[data-lesson-done]')!.hidden = false;
+    });
+  </script>
+</Base>

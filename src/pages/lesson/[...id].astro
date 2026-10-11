@@ -1,0 +1,96 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import Quiz from '../../components/Quiz.astro';
+import DerivativeLab from '../../components/labs/DerivativeLab.astro';
+import RiemannLab from '../../components/labs/RiemannLab.astro';
+import TaylorLab from '../../components/labs/TaylorLab.astro';
+import MatrixLab from '../../components/labs/MatrixLab.astro';
+import ProbabilityLab from '../../components/labs/ProbabilityLab.astro';
+import { courseMap, chapterOf } from '../../data/courses';
+import { labMap } from '../../data/labs';
+import { allLessons, lessonPath } from '../../lib/lessons-server';
+
+export async function getStaticPaths() {
+  const lessons = await getCollection('lessons');
+  return lessons.map((lesson) => ({ params: { id: lesson.id }, props: { lesson } }));
+}
+
+const { lesson } = Astro.props;
+const { Content } = await render(lesson);
+const course = courseMap.get(lesson.data.course)!;
+const chapter = chapterOf(lesson.data.course, lesson.data.chapter);
+const lessonLabs = lesson.data.labs.map((id) => labMap.get(id)).filter(Boolean);
+const labComponents: Record<string, typeof DerivativeLab> = {
+  derivative: DerivativeLab, riemann: RiemannLab, taylor: TaylorLab, matrix: MatrixLab, probability: ProbabilityLab,
+};
+
+const ordered = await allLessons();
+const idx = ordered.findIndex((l) => l.id === lesson.id);
+const prev = idx > 0 ? ordered[idx - 1] : null;
+const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
+---
+<Base title={`${lesson.data.title} · ${course.name} · 考研数学实验室`} description={lesson.data.subtitle}>
+  <article class="lesson" data-lesson-id={lesson.id}>
+    <nav class="breadcrumb" aria-label="面包屑">
+      <a href={`/course/${course.id}`}>{course.name}</a>
+      <span>/</span>
+      {chapter && <span>第 {chapter.num} 章 · {chapter.title}</span>}
+      <span>/</span>
+      <span aria-current="page">{lesson.data.title}</span>
+    </nav>
+
+    <header class="lesson-header">
+      <div class="lesson-topline">
+        <span>{course.short} · 第 {chapter?.num} 章 · 课时 {lesson.data.order}</span>
+        <span class="reading-tag">约 {lesson.data.minutes} 分钟 · 正文 + 实验 + 练习</span>
+      </div>
+      <h1>{lesson.data.title}</h1>
+      <p class="lead">{lesson.data.subtitle}</p>
+    </header>
+
+    <div class="article">
+      <Content />
+    </div>
+
+    {lessonLabs.length > 0 && (
+      <section aria-label="动手实验室">
+        <div class="section-head"><h2>动手实验室</h2><span>先猜，再动，后看结果</span></div>
+        {lessonLabs.map((lab) => {
+          const Component = labComponents[lab!.id];
+          return Component ? <Component /> : null;
+        })}
+        <details class="explanation">
+          <summary>实验是真实计算还是演示动画？</summary>
+          <p>函数值、行列式、特征值都由本页面用精确公式实时计算；概率实验使用浏览器内置的真随机数做蒙特卡洛模拟。没有预制动画，你看到的就是算出来的。</p>
+        </details>
+      </section>
+    )}
+
+    {lesson.data.quiz && <Quiz quizId={lesson.data.quiz} />}
+    <p class="quiz-storage-note" data-quiz-storage-note></p>
+
+    <div class="completion-row">
+      <input id="lesson-complete" type="checkbox">
+      <label for="lesson-complete">我已读完正文并完成本课练习</label>
+    </div>
+
+    <nav class="lesson-footer-nav" aria-label="上一篇下一篇">
+      {prev ? <a class="button" href={lessonPath(prev)}>← {prev.data.title}</a> : <span></span>}
+      {next ? <a class="button" href={lessonPath(next)}>{next.data.title} →</a> : <a class="button" href="/">返回首页</a>}
+    </nav>
+  </article>
+
+  <script>
+    import { loadProgress, recordLesson } from '../../lib/progress';
+
+    const article = document.querySelector<HTMLElement>('[data-lesson-id]')!;
+    const lessonId = article.dataset.lessonId!;
+    const checkbox = document.getElementById('lesson-complete') as HTMLInputElement;
+    const p0 = loadProgress();
+    checkbox.checked = Boolean(p0.completed[lessonId]);
+    checkbox.addEventListener('change', () => { recordLesson(lessonId, checkbox.checked); });
+    // 记住最后访问的课时，首页“继续”用
+    try { localStorage.setItem('kaoyan-math-last-lesson', `/lesson/${lessonId}`); } catch { /* 存储不可用时忽略 */ }
+  </script>
+</Base>

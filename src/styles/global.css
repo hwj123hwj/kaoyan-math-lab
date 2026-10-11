@@ -1,0 +1,210 @@
+/* 考研数学实验室 · 全局样式
+   视觉基调沿用工作区约定：明亮、留白、单色系 + 少量状态色；色彩只表达选中/正确/错误/完成。 */
+:root{
+  color-scheme:light;
+  --bg:oklch(1 0 0);
+  --surface:oklch(.97 0 0);
+  --ink:oklch(.26 .02 265);
+  --muted:oklch(.47 .02 265);
+  --primary:oklch(.42 .15 265);
+  --tint:oklch(.95 .03 265);
+  --line:oklch(.88 .01 265);
+  --accent:oklch(.55 .12 80);
+  --success:oklch(.45 .1 155);
+  --danger:oklch(.5 .17 25);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  font-size:16px;line-height:1.7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);min-width:320px}
+a{color:var(--primary);text-underline-offset:4px}
+button,input,select{font:inherit}
+button{cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.5}
+button:active:not(:disabled){transform:translateY(1px)}
+:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+h1,h2,h3{line-height:1.35;text-wrap:balance;letter-spacing:-.02em}
+p{max-width:74ch;text-wrap:pretty}
+code,pre{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+[hidden]{display:none!important}
+.skip{position:fixed;top:-80px;left:16px;background:var(--ink);color:#fff;padding:12px;z-index:9}
+.skip:focus{top:12px}
+
+/* 头部 */
+.header{min-height:80px;padding:10px 40px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:12px;color:var(--ink);font-weight:750;text-decoration:none;font-size:1.08rem}
+.brand-symbol{width:44px;height:44px;background:var(--primary);color:#fff;border-radius:10px;display:grid;place-items:center;font:italic 800 1.5rem Georgia,serif}
+.brand small{display:block;color:var(--muted);font-size:.72rem;font-weight:500}
+.header nav{display:flex;gap:6px;flex-wrap:wrap}
+.header nav a{color:var(--muted);text-decoration:none;font-size:.86rem;padding:8px 12px;border-radius:7px}
+.header nav a:hover{background:var(--tint);color:var(--primary)}
+
+main{max-width:1180px;margin:0 auto;padding:36px clamp(20px,4vw,48px) 0}
+.footer{max-width:1180px;margin:56px auto 0;padding:20px clamp(20px,4vw,48px) 28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.74rem;color:var(--muted)}
+
+/* 首页 */
+.hero{padding:30px 0 8px}
+.hero .kicker{font-size:.8rem;color:var(--primary);font-weight:700;letter-spacing:.06em}
+.hero h1{font-size:clamp(1.9rem,4.5vw,2.7rem);margin:14px 0 10px}
+.hero .lead{font-size:1rem;color:var(--muted);margin:0 0 22px}
+.hero-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:30px 0 8px}
+.stat{background:var(--surface);border-radius:12px;padding:16px 18px}
+.stat b{display:block;font-size:1.45rem;letter-spacing:-.02em}
+.stat span{font-size:.74rem;color:var(--muted)}
+
+.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin:38px 0 16px;flex-wrap:wrap}
+.section-head h2{margin:0;font-size:1.25rem}
+.section-head span{font-size:.74rem;color:var(--muted)}
+
+.course-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.course-card{display:flex;flex-direction:column;gap:8px;background:var(--surface);border-radius:14px;padding:22px;text-decoration:none;color:var(--ink);border:1px solid transparent;transition:border-color 150ms ease-out}
+.course-card:hover{border-color:var(--course-accent,var(--primary))}
+.course-card .badge{align-self:flex-start;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:99px;background:oklch(.93 .05 var(--course-hue));color:oklch(.38 .13 var(--course-hue))}
+.course-card h3{margin:6px 0 0}
+.course-card p{margin:0;font-size:.82rem;color:var(--muted)}
+.course-card .meta{font-size:.72rem;color:var(--muted);font-family:ui-monospace,monospace}
+.course-card progress{accent-color:oklch(.45 .14 var(--course-hue));width:100%;height:6px}
+.course-progress-label{display:flex;justify-content:space-between;font-size:.7rem;color:var(--muted)}
+
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+.lab-card{display:flex;flex-direction:column;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:18px;text-decoration:none;color:var(--ink)}
+.lab-card:hover{background:var(--tint)}
+.lab-card h3{margin:0;font-size:.98rem}
+.lab-card p{margin:0;font-size:.78rem;color:var(--muted)}
+.lab-card .lab-course{font-size:.68rem;color:var(--primary);font-weight:700}
+
+.howto{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:8px 0 10px}
+.howto div{background:var(--surface);border-radius:12px;padding:18px}
+.howto h3{margin:0 0 6px;font-size:.95rem}
+.howto p{margin:0;font-size:.8rem;color:var(--muted)}
+
+/* 课程页 */
+.course-hero{padding:10px 0 6px;display:flex;flex-direction:column;gap:6px}
+.course-hero .badge{align-self:flex-start;font-size:.72rem;font-weight:700;padding:4px 11px;border-radius:99px;background:oklch(.93 .05 var(--course-hue));color:oklch(.38 .13 var(--course-hue))}
+.course-hero h1{margin:8px 0 2px;font-size:clamp(1.6rem,3.6vw,2.2rem)}
+.course-hero p{margin:0;color:var(--muted)}
+.chapter-list{display:flex;flex-direction:column;gap:14px;margin:26px 0}
+.chapter-card{background:var(--surface);border-radius:14px;padding:20px 22px}
+.chapter-card .chapter-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.chapter-card .chapter-head h2{margin:0;font-size:1.05rem}
+.chapter-card .chapter-head small{color:var(--muted)}
+.chapter-points{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px;padding:0;list-style:none}
+.chapter-points li{font-size:.7rem;background:var(--bg);border:1px solid var(--line);border-radius:99px;padding:3px 10px;color:var(--muted)}
+.chapter-empty{font-size:.76rem;color:var(--muted)}
+.lesson-links{display:flex;flex-direction:column;gap:4px;margin-top:10px}
+.lesson-link{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:.86rem}
+.lesson-link:hover{background:var(--tint)}
+.lesson-link .done{color:var(--success);font-weight:700}
+.lesson-link small{color:var(--muted);margin-left:auto;font-size:.7rem;font-family:ui-monospace,monospace}
+
+/* 课时页 */
+.breadcrumb{display:flex;gap:8px;font-size:.76rem;color:var(--muted);margin-bottom:18px;flex-wrap:wrap}
+.breadcrumb a{color:var(--muted)}
+.lesson-topline{display:flex;gap:12px;align-items:center;font-size:.76rem;color:var(--primary);font-weight:700;flex-wrap:wrap}
+.lesson-topline .reading-tag{color:var(--muted);font-weight:400}
+.lesson-header h1{font-size:clamp(1.7rem,4vw,2.4rem);margin:12px 0 8px}
+.lesson-header .lead{font-size:1rem;color:var(--muted);margin:0}
+
+/* 正文排版 */
+.article{margin-top:28px;font-size:.95rem}
+.article h2{font-size:1.22rem;margin:34px 0 10px;padding-top:18px;border-top:1px solid var(--line)}
+.article h3{font-size:1.02rem;margin:26px 0 8px}
+.article p{margin:10px 0}
+.article ul,.article ol{padding-left:24px;margin:10px 0}
+.article li{margin:5px 0}
+.article blockquote{margin:14px 0;padding:10px 18px;border-left:3px solid var(--primary);background:var(--tint);border-radius:0 8px 8px 0;color:var(--ink)}
+.article blockquote p{margin:4px 0}
+.article code{background:var(--surface);border-radius:5px;padding:2px 6px;font-size:.85em}
+.katex{font-size:1.06em}
+.katex-display{overflow-x:auto;overflow-y:hidden;padding:4px 0}
+
+/* 实验室外壳 */
+.lab{margin:26px 0;border:1px solid var(--line);border-radius:14px;padding:18px;background:var(--surface)}
+.lab-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:14px;font-size:.78rem}
+.lab-toolbar label{display:flex;align-items:center;gap:8px}
+.lab-toolbar select,.lab-toolbar input[type="number"]{font-size:.78rem;color:var(--ink);padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);min-height:36px}
+.lab-toolbar input[type="range"]{accent-color:var(--primary);width:150px}
+.lab-toolbar>span,.lab-toolbar .matrix-input{display:inline-flex;flex-direction:column;gap:3px}
+.matrix-input{max-width:86px}
+.matrix-input input{width:100%}
+.lab-toolbar .text-button{margin-left:auto}
+.text-button{padding:6px 0;min-height:36px;border:0;background:transparent;color:var(--primary);text-decoration:underline;text-underline-offset:4px;font-size:.78rem}
+.button{display:inline-flex;justify-content:center;align-items:center;min-height:42px;padding:8px 18px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font-size:.85rem;font-weight:600;text-decoration:none}
+.button:hover:not(:disabled){background:var(--tint)}
+.button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.button.primary:hover:not(:disabled){background:var(--ink);border-color:var(--ink);color:#fff}
+.lab-canvas{width:100%;height:360px;display:block;margin-top:14px;background:var(--bg);border:1px solid var(--line);border-radius:10px}
+.lab-canvas-tall{height:420px}
+.lab-readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.lab-readouts>div{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.lab-readouts span{font-size:.68rem;color:var(--muted)}
+.lab-readouts code{font-size:.95rem;font-weight:700}
+.lab-readouts small{font-size:.64rem;color:var(--muted)}
+.lab-message{padding:13px 16px;background:var(--tint);color:var(--ink);border-radius:9px;font-size:.82rem;margin:14px 0 2px;min-height:52px}
+.explanation{margin-top:16px;border-top:1px solid var(--line);padding-top:12px;font-size:.8rem}
+.explanation summary{cursor:pointer;font-weight:600;min-height:32px}
+.explanation p{color:var(--muted)}
+
+/* 测验 */
+.quiz{margin:34px 0;border:1px solid var(--line);border-radius:14px;padding:20px 22px;background:var(--surface)}
+.quiz-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.quiz-head h2{margin:0;font-size:1.1rem}
+.quiz-head span{font-size:.72rem;color:var(--muted)}
+.quiz-dots{display:flex;gap:6px;margin:8px 0 16px}
+.quiz-dot{width:11px;height:11px;border-radius:99px;background:var(--bg);border:1px solid var(--line)}
+.quiz-dot[data-state="current"]{border-color:var(--primary);background:var(--tint)}
+.quiz-dot[data-state="done"]{background:oklch(.88 .04 265)}
+.quiz-dot[data-value="1"]{background:var(--success)}
+.quiz-dot[data-value="0"]{background:var(--danger)}
+.quiz-stem{font-size:1rem;margin:4px 0 14px}
+.quiz-options{display:flex;flex-direction:column;gap:8px}
+.quiz-option{display:flex;align-items:center;gap:12px;text-align:left;min-height:48px;padding:10px 14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:.9rem}
+.quiz-option:hover:not(:disabled){background:var(--tint)}
+.quiz-option.is-correct{border-color:var(--success);background:oklch(.96 .04 155)}
+.quiz-option.is-wrong{border-color:var(--danger);background:oklch(.97 .03 25)}
+.quiz-option-key{display:grid;place-items:center;min-width:26px;height:26px;border-radius:7px;background:var(--surface);font-family:ui-monospace,monospace;font-size:.78rem;font-weight:700}
+.quiz-option.is-correct .quiz-option-key{background:var(--success);color:#fff}
+.quiz-option.is-wrong .quiz-option-key{background:var(--danger);color:#fff}
+.quiz-feedback{margin-top:14px}
+.quiz-verdict{margin:0 0 8px;font-weight:700;font-size:.9rem}
+.quiz-verdict.right{color:var(--success)}
+.quiz-verdict.wrong{color:var(--danger)}
+.quiz-explain{margin:0;font-size:.84rem;color:var(--ink);background:var(--bg);border-radius:9px;padding:12px 14px;border:1px solid var(--line)}
+.quiz-actions{margin-top:16px;display:flex;justify-content:flex-end}
+.quiz-score-line{font-size:2rem;margin:18px 0 6px;text-align:center}
+.quiz-score-line strong{font-size:3rem;letter-spacing:-.03em}
+.quiz-score-note{text-align:center;color:var(--muted);margin:0 0 8px}
+.quiz-storage-note{font-size:.7rem;color:var(--muted);margin:10px 0 0}
+
+/* 课时操作区 */
+.lesson-footer-nav{display:flex;justify-content:space-between;gap:12px;margin-top:36px;padding-top:20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.lesson-footer-nav a{max-width:46%}
+.completion-row{display:flex;align-items:center;gap:10px;margin-top:26px;color:var(--muted);font-size:.82rem;flex-wrap:wrap}
+.completion-row input{width:17px;height:17px;accent-color:var(--primary)}
+
+/* 公式速查 */
+.sheet h2{margin-top:40px;border-top:1px solid var(--line);padding-top:22px}
+.sheet table{border-collapse:collapse;width:100%;margin:14px 0;font-size:.88rem}
+.sheet th,.sheet td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:middle}
+.sheet th{background:var(--surface)}
+.sheet tr:nth-child(even) td{background:oklch(.985 0 0)}
+
+/* 响应式 */
+@media(max-width:760px){
+  .header{padding:10px 18px}
+  .header nav{gap:2px}
+  .header nav a{padding:7px 9px;font-size:.78rem}
+  main{padding:24px 18px 0}
+  .hero{padding-top:14px}
+  .lesson-footer-nav a{max-width:100%}
+  .quiz{padding:16px}
+  .lab{padding:14px}
+  .lab-toolbar input[type="range"]{width:110px}
+  .lab-canvas{height:300px}
+  .lab-canvas-tall{height:360px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+  html{scroll-behavior:auto}
+}

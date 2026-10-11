@@ -1,0 +1,99 @@
+---
+import Base from '../layouts/Base.astro';
+import { courses } from '../data/courses';
+import { labs } from '../data/labs';
+import { allLessons, lessonPath } from '../lib/lessons-server';
+
+const lessons = await allLessons();
+const lessonCountByCourse = new Map<string, number>();
+for (const l of lessons) lessonCountByCourse.set(l.data.course, (lessonCountByCourse.get(l.data.course) ?? 0) + 1);
+
+// 交给浏览器端进度脚本
+const lessonIndex = lessons.map((l) => ({ id: l.id, course: l.data.course, title: l.data.title }));
+const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
+---
+<Base title="考研数学实验室 · 高数 / 线代 / 概率">
+  <section class="hero">
+    <p class="kicker">数一 · 三门课 · 一年规划</p>
+    <h1>让考研数学，没那么无聊。</h1>
+    <p class="lead">每个核心概念配一个能动手的实验室：拖动点、调参数、跑模拟，亲眼看见定理发生。看完就练，练完就算分。</p>
+    <div class="hero-actions">
+      <a class="button primary" href={firstLessonPath}>从第一课开始 →</a>
+      <a class="button" href="/labs" hidden data-continue-link>继续上次 →</a>
+      <a class="button" href="/labs">直达实验室</a>
+      <a class="button" href="/formulas">公式速查</a>
+    </div>
+    <div class="stat-row" aria-label="学习统计">
+      <div class="stat"><b id="stat-streak">0 天</b><span>连续学习</span></div>
+      <div class="stat"><b id="stat-xp">0 分</b><span>练习累计得分</span></div>
+      <div class="stat"><b id="stat-lessons">0 / {lessons.length}</b><span>已完成课时</span></div>
+      <div class="stat"><b>{labs.length} 个</b><span>可动手实验室</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="courses-title">
+    <div class="section-head"><h2 id="courses-title">三门课</h2><span>按数学一考纲组织 · 卷面占比来自官方公布比例</span></div>
+    <div class="course-grid">
+      {courses.map((c) => (
+        <a class="course-card" style={`--course-hue:${c.hue};--course-accent:oklch(.45 .14 ${c.hue})`} href={`/course/${c.id}`}>
+          <span class="badge">卷面 {c.weight}</span>
+          <h3>{c.name}</h3>
+          <p>{c.tagline}</p>
+          <span class="meta">{c.chapters.length} 章 · {lessonCountByCourse.get(c.id) ?? 0} 个已上线课时</span>
+          <progress data-course-progress={c.id} max="100" value="0"></progress>
+          <span class="course-progress-label"><span>我的进度</span><span data-course-progress-label={c.id}>0%</span></span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section aria-labelledby="labs-title">
+    <div class="section-head"><h2 id="labs-title">五个实验室</h2><span>全部在浏览器本地运行 · 不联网计算</span></div>
+    <div class="lab-grid">
+      {labs.map((lab) => (
+        <a class="lab-card" href={`/labs#${lab.id}`}>
+          <span class="lab-course">{lab.course === 'calculus' ? '高数' : lab.course === 'linear-algebra' ? '线代' : '概率'}</span>
+          <h3>{lab.title}</h3>
+          <p>{lab.blurb}</p>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <section aria-labelledby="how-title">
+    <div class="section-head"><h2 id="how-title">怎么用这个站</h2><span>一年三阶段，节奏自己定</span></div>
+    <div class="howto">
+      <div><h3>① 看</h3><p>读一个课时的正文：直觉 → 定义 → 例题精讲。例题全部给出完整过程，别跳。</p></div>
+      <div><h3>② 动手</h3><p>把课时里的实验室玩到能"预测结果"：不看屏幕说出调参后会发生什么，才算看懂。</p></div>
+      <div><h3>③ 刷</h3><p>做随堂练习，错题读解析。得分会累计，最佳成绩会被记录。</p></div>
+      <div><h3>④ 回</h3><p>隔天回来重做一遍同题组。间隔重复比一次刷十题记得牢。</p></div>
+    </div>
+  </section>
+
+  <script type="application/json" data-lesson-index set:html={JSON.stringify(lessonIndex).replace(/</g, '\\u003c')} />
+  <script>
+    import { loadProgress, computeStreak } from '../lib/progress';
+
+    const index = JSON.parse(document.querySelector<HTMLScriptElement>('[data-lesson-index]')?.textContent || '[]') as { id: string; course: string }[];
+    const p = loadProgress();
+    const done = index.filter((l) => p.completed[l.id]).length;
+    document.getElementById('stat-streak')!.textContent = `${computeStreak(p.days)} 天`;
+    document.getElementById('stat-xp')!.textContent = `${p.xp} 分`;
+    document.getElementById('stat-lessons')!.textContent = `${done} / ${index.length}`;
+
+    const last = (() => { try { return localStorage.getItem('kaoyan-math-last-lesson'); } catch { return null; } })();
+    if (last) {
+      const link = document.querySelector<HTMLAnchorElement>('[data-continue-link]');
+      if (link) { link.href = last; link.hidden = false; }
+    }
+
+    for (const courseId of ['calculus', 'linear-algebra', 'probability']) {
+      const ids = index.filter((l) => l.course === courseId);
+      const bar = document.querySelector<HTMLProgressElement>(`[data-course-progress="${courseId}"]`);
+      const label = document.querySelector<HTMLElement>(`[data-course-progress-label="${courseId}"]`);
+      const pct = ids.length ? Math.round((ids.filter((l) => p.completed[l.id]).length / ids.length) * 100) : 0;
+      if (bar) bar.value = pct;
+      if (label) label.textContent = `${pct}%`;
+    }
+  </script>
+</Base>

@@ -1,0 +1,190 @@
+---
+// 矩阵变换实验室：2×2 矩阵作用在平面网格上，行列式 = 面积伸缩倍数（带符号）。
+---
+<section class="lab" id="lab-matrix" aria-label="矩阵变换实验室">
+  <div class="lab-toolbar">
+    <label>A = <span class="matrix-input"><input id="ma-a" type="number" step="0.1" value="0.8"><input id="ma-c" type="number" step="0.1" value="0.4"></span>
+      <span class="matrix-input"><input id="ma-b" type="number" step="0.1" value="0.6"><input id="ma-d" type="number" step="0.1" value="-0.5"></span></label>
+    <label>预设 <select id="ma-preset">
+      <option value="">选择一个变换…</option>
+      <option value="identity">恒等</option>
+      <option value="rotate">旋转 45°</option>
+      <option value="shear">剪切</option>
+      <option value="reflect">关于 y 轴反射</option>
+      <option value="project">投影到 x 轴（奇异）</option>
+      <option value="scale">放大 1.5 倍</option>
+    </select></label>
+    <button id="ma-play" class="button primary" type="button">播放变换</button>
+    <button id="ma-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="ma-canvas" class="lab-canvas lab-canvas-tall" height="420" aria-label="矩阵对平面网格的变换"></canvas>
+  <div class="lab-readouts">
+    <div><span>î 的去向</span><code id="ma-ivec">—</code><small>A·(1,0)</small></div>
+    <div><span>ĵ 的去向</span><code id="ma-jvec">—</code><small>A·(0,1)</small></div>
+    <div><span>det A</span><code id="ma-det">—</code><small>面积伸缩倍数（负号 = 翻转定向）</small></div>
+    <div><span>特征值</span><code id="ma-eig">—</code><small>实数时画出对应方向</small></div>
+  </div>
+  <p class="lab-message" id="ma-message" role="status">输入矩阵或选预设，点“播放变换”。盯着两个基向量：矩阵的全部秘密都在它们身上。</p>
+</section>
+
+<script>
+import { fitCanvas, reducedMotion } from '../../lib/plot';
+
+type Mat = [number, number, number, number]; // a b c d 按行
+const canvas = document.getElementById('ma-canvas') as HTMLCanvasElement;
+const inputs = ['ma-a', 'ma-b', 'ma-c', 'ma-d'].map((id) => document.getElementById(id) as HTMLInputElement);
+const preset = document.getElementById('ma-preset') as HTMLSelectElement;
+const play = document.getElementById('ma-play') as HTMLButtonElement;
+const message = document.getElementById('ma-message')!;
+let t = 1;            // 插值进度：I → M
+let raf: number | null = null;
+const ORDER: [number, number][] = [[0, 0], [0, 1], [1, 0], [1, 1]]; // 输入框顺序对应 a b c d
+
+const presets: Record<string, () => Mat> = {
+  identity: () => [1, 0, 0, 1],
+  rotate: () => [Math.SQRT1_2, -Math.SQRT1_2, Math.SQRT1_2, Math.SQRT1_2],
+  shear: () => [1, 1, 0, 1],
+  reflect: () => [-1, 0, 0, 1],
+  project: () => [1, 0, 0, 0],
+  scale: () => [1.5, 0, 0, 1.5],
+};
+
+function readMatrix(): Mat {
+  return ORDER.map((_, i) => {
+    const v = Number(inputs[i].value);
+    return Number.isFinite(v) ? v : 0;
+  }) as Mat;
+}
+function setMatrix(m: Mat) { ORDER.forEach(([r, c], i) => { inputs[i].value = String(round(m[r * 2 + c])); }); }
+const round = (v: number) => Math.round(v * 1000) / 1000;
+
+function apply(m: Mat, x: number, y: number): [number, number] {
+  return [m[0] * x + m[1] * y, m[2] * x + m[3] * y];
+}
+function lerpMat(t: number): Mat {
+  const m = readMatrix();
+  return m.map((v) => 1 + (v - 1) * t) as Mat;
+}
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const m = lerpMat(t);
+  const cx = w / 2, cy = h / 2;
+  const unit = Math.min(w, h) / 9;
+
+  const px = (x: number, y: number): [number, number] => [cx + x * unit, cy - y * unit];
+
+  ctx.lineWidth = 1;
+  const range = 12;
+  const [ix, iy] = apply(m, 0, 1);
+  const [jx, jy] = apply(m, 1, 0);
+  const gridX = [ix, jx], gridY = [iy, jy];
+
+  // 变换后的网格线：k·î 方向的整族线 + k·ĵ 方向的整族线
+  ctx.strokeStyle = 'rgba(59,63,143,.16)';
+  for (let k = -range; k <= range; k++) {
+    for (const dir of [[0, 1], [1, 0]] as [number, number][]) {
+      const [dx, dy] = apply(m, dir[0], dir[1]);
+      const [bx, by] = apply(m, dir[0] === 1 ? k : 0, dir[0] === 1 ? 0 : k);
+      const len = (w + h) / unit;
+      const [x0, y0] = px(bx - dx * len, by - dy * len);
+      const [x1, y1] = px(bx + dx * len, by + dy * len);
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    }
+  }
+
+  // 单位正方形 A([0,1]²)：面积 = |det|
+  const det = m[0] * m[3] - m[1] * m[2];
+  ctx.beginPath();
+  const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 1, 1), apply(m, 0, 1)];
+  corners.forEach(([x, y], i) => { const [pxv, pyv] = px(x, y); if (i === 0) ctx.moveTo(pxv, pyv); else ctx.lineTo(pxv, pyv); });
+  ctx.closePath();
+  ctx.fillStyle = det >= 0 ? 'rgba(59,63,143,.24)' : 'rgba(200,70,70,.24)';
+  ctx.fill();
+  ctx.strokeStyle = det >= 0 ? '#3b3f8f' : '#c84646';
+  ctx.lineWidth = 1.6; ctx.stroke();
+
+  // 基向量
+  arrow(ctx, px(0, 0), px(m[0], m[2]), '#1f9d6b');
+  arrow(ctx, px(0, 0), px(m[1], m[3]), '#c07f00');
+  ctx.font = '12px ui-monospace, monospace';
+  const [i2x, i2y] = px(m[0], m[2]); const [j2x, j2y] = px(m[1], m[3]);
+  ctx.fillStyle = '#1f9d6b'; ctx.fillText('î →', i2x + 6, i2y - 6);
+  ctx.fillStyle = '#c07f00'; ctx.fillText('ĵ →', j2x + 6, j2y - 6);
+
+  // 实特征值方向
+  const tr = m[0] + m[3];
+  const disc = tr * tr - 4 * det;
+  const eigs: number[] = [];
+  if (disc >= 0) {
+    const r = Math.sqrt(disc);
+    eigs.push((tr + r) / 2, (tr - r) / 2);
+  }
+  ctx.setLineDash([5, 4]);
+  for (const lam of eigs) {
+    let v: [number, number];
+    const v1: [number, number] = [m[1], lam - m[0]];
+    if (Math.abs(v1[0]) + Math.abs(v1[1]) > 1e-9) v = v1;
+    else v = [lam - m[3], m[2]];
+    if (Math.abs(v[0]) + Math.abs(v[1]) < 1e-9) continue;
+    const len = (w / unit) * 0.5;
+    const n = Math.hypot(v[0], v[1]);
+    const [x0, y0] = px(-v[0] / n * len, -v[1] / n * len);
+    const [x1, y1] = px(v[0] / n * len, v[1] / n * len);
+    ctx.strokeStyle = 'rgba(160,80,180,.85)'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  document.getElementById('ma-ivec')!.textContent = `(${round(m[0])}, ${round(m[2])})`;
+  document.getElementById('ma-jvec')!.textContent = `(${round(m[1])}, ${round(m[3])})`;
+  document.getElementById('ma-det')!.textContent = `${round(det)}${Math.abs(det) < 1e-9 ? ' · 变换把平面压扁了' : det < 0 ? ' · 定向翻转' : ''}`;
+  document.getElementById('ma-eig')!.textContent = eigs.length
+    ? eigs.map(round).join(' 与 ')
+    : '一对共轭复数（纯旋转类）';
+
+  if (Math.abs(det) < 1e-9) message.textContent = 'det = 0：整张平面被压成一条线（或一个点），变换不可逆——信息已经丢掉，回不去了。';
+  else if (det < 0) message.textContent = `det = ${round(det)} < 0：面积变了 |det| 倍，同时平面被"翻转"（定向反向）。`;
+  else message.textContent = `det = ${round(det)}：单位正方形的面积被伸缩为 |det| 倍。紫色虚线是方向不变的特征向量方向。`;
+}
+
+function arrow(ctx: CanvasRenderingContext2D, from: [number, number], to: [number, number], color: string) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(from[0], from[1]); ctx.lineTo(to[0], to[1]); ctx.stroke();
+  const ang = Math.atan2(to[1] - from[1], to[0] - from[0]);
+  ctx.beginPath();
+  ctx.moveTo(to[0], to[1]);
+  ctx.lineTo(to[0] - 10 * Math.cos(ang - Math.PI / 6), to[1] - 10 * Math.sin(ang - Math.PI / 6));
+  ctx.lineTo(to[0] - 10 * Math.cos(ang + Math.PI / 6), to[1] - 10 * Math.sin(ang + Math.PI / 6));
+  ctx.closePath(); ctx.fill();
+}
+
+function stopAnim() { if (raf !== null) { cancelAnimationFrame(raf); raf = null; play.textContent = '播放变换'; } }
+
+play.addEventListener('click', () => {
+  if (raf !== null) { stopAnim(); return; }
+  if (reducedMotion()) { t = 1; draw(); return; }
+  t = 0; play.textContent = '暂停';
+  const t0 = performance.now();
+  const step = (now: number) => {
+    t = Math.min(1, (now - t0) / 900);
+    draw();
+    if (t >= 1) { stopAnim(); return; }
+    raf = requestAnimationFrame(step);
+  };
+  raf = requestAnimationFrame(step);
+});
+
+inputs.forEach((el) => el.addEventListener('input', () => { stopAnim(); t = 1; draw(); }));
+preset.addEventListener('change', () => {
+  const p = presets[preset.value];
+  if (!p) return;
+  stopAnim(); setMatrix(p()); t = 1; draw();
+});
+document.getElementById('ma-reset')!.addEventListener('click', () => {
+  stopAnim(); setMatrix([1, 0, 0, 1]); preset.value = ''; t = 1; draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>

@@ -1,0 +1,45 @@
+---
+import 'katex/dist/katex.min.css';
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = '考研数学实验室：高数、线代、概率论的可视化课堂与随堂练习。' } = Astro.props;
+const nav = [
+  { href: '/', label: '首页' },
+  { href: '/course/calculus', label: '高数' },
+  { href: '/course/linear-algebra', label: '线代' },
+  { href: '/course/probability', label: '概率' },
+  { href: '/labs', label: '实验室' },
+  { href: '/formulas', label: '公式速查' },
+];
+---
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#3b3f8f">
+</head>
+<body>
+<a class="skip" href="#main">跳到主要内容</a>
+<header class="header">
+  <a class="brand" href="/"><span class="brand-symbol">∫</span><span>考研数学实验室 <small>高数 · 线代 · 概率</small></span></a>
+  <nav aria-label="主导航">
+    {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+  </nav>
+</header>
+<main id="main">
+  <slot />
+</main>
+<footer class="footer">
+  <span>考研数学实验室 · 看 → 动手 → 刷题 → 回来再看</span>
+  <span>进度只保存在本浏览器</span>
+</footer>
+</body>
+</html>
