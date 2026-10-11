@@ -5,6 +5,9 @@ import RiemannLab from '../components/labs/RiemannLab.astro';
 import TaylorLab from '../components/labs/TaylorLab.astro';
 import MatrixLab from '../components/labs/MatrixLab.astro';
 import ProbabilityLab from '../components/labs/ProbabilityLab.astro';
+import LimitCasesLab from '../components/labs/LimitCasesLab.astro';
+import MvtLab from '../components/labs/MvtLab.astro';
+import ComposeLab from '../components/labs/ComposeLab.astro';
 import { labs } from '../data/labs';
 
 const intro: Record<string, string> = {
@@ -13,6 +16,9 @@ const intro: Record<string, string> = {
   taylor: '对应课时：泰勒公式。看清收敛半径，理解为什么泰勒展开只在一定范围内可靠。',
   matrix: '对应课时：矩阵即变换。行列式、秩、特征向量的几何意义一次看全。',
   probability: '对应课时：大数定律与中心极限定理。用真随机模拟看到频率稳定与钟形浮现。',
+  'limit-cases': '对应课时：极限的存在性。放大 x = 0，看振荡、跳跃、可去、夹逼四种行为。',
+  mvt: '对应课时：中值定理。拖动 ξ 找到切线平行于弦的那一刻，定理瞬间不抽象。',
+  compose: '对应课时：矩阵即变换。先 B 后 A 与先 A 后 B，交换顺序看 AB ≠ BA。',
 };
 ---
 <Base title="实验室 · 考研数学实验室">
@@ -20,6 +26,7 @@ const intro: Record<string, string> = {
     <p class="kicker">动手区</p>
     <h1>五个实验室</h1>
     <p class="lead">全部本地运行：函数值与矩阵运算是精确计算，概率是浏览器真随机模拟。先猜结果，再动手验证。</p>
+    <p class="lead">页面较长，可用目录跳转：<a href="#limit-cases">极限存在性</a> · <a href="#derivative">切线</a> · <a href="#mvt">中值定理</a> · <a href="#riemann">黎曼和</a> · <a href="#taylor">泰勒</a> · <a href="#matrix">矩阵</a> · <a href="#compose">复合变换</a> · <a href="#probability">概率</a></p>
   </section>
 
   {labs.map((lab) => (
@@ -33,6 +40,9 @@ const intro: Record<string, string> = {
       {lab.id === 'taylor' && <TaylorLab />}
       {lab.id === 'matrix' && <MatrixLab />}
       {lab.id === 'probability' && <ProbabilityLab />}
+      {lab.id === 'limit-cases' && <LimitCasesLab />}
+      {lab.id === 'mvt' && <MvtLab />}
+      {lab.id === 'compose' && <ComposeLab />}
     </section>
   ))}
 </Base>

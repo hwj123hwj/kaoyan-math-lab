@@ -1,0 +1,129 @@
+---
+// 极限存在性实验室：放大 x=0 附近，看振荡、跳跃、可去、夹逼四类行为。
+---
+<section class="lab" id="lab-limit-cases" aria-label="极限存在性实验室">
+  <div class="lab-toolbar">
+    <label>函数 <select id="lc-f">
+      <option value="osc" selected>sin(1/x) · 振荡</option>
+      <option value="squeeze">x·sin(1/x) · 被夹住</option>
+      <option value="jump">|x|/x · 跳跃</option>
+      <option value="removable">sin(x)/x · 可去</option>
+    </select></label>
+    <label>放大倍数 <output id="lc-zoom-out">1×</output> <input id="lc-zoom" type="range" min="0" max="100" step="1" value="0"></label>
+    <button id="lc-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="lc-canvas" class="lab-canvas" height="360" aria-label="x=0 附近的函数图像"></canvas>
+  <div class="lab-readouts">
+    <div><span>可视范围</span><code id="lc-range">±4.5</code><small>x 轴显示区间</small></div>
+    <div><span>极限</span><code id="lc-limit">—</code><small>x→0</small></div>
+    <div><span>x = 0 处</span><code id="lc-point">—</code><small>间断类型 / 定义情况</small></div>
+  </div>
+  <p class="lab-message" id="lc-message" role="status">拖动“放大倍数”往 x = 0 逼近，看每种函数暴露出什么本性。</p>
+</section>
+
+<script>
+import { fitCanvas, makeScale, drawAxes, plotFunction } from '../../lib/plot';
+
+interface Cfg {
+  f: (x: number) => number;
+  limit: string;
+  atZero: string;
+  note: string;
+  /** 满量程时的 y 范围 */
+  ylim: number;
+  /** 额外画的上/下夹逼线 */
+  envelopes?: ((x: number) => number)[];
+  /** 是否在 x=0 画空心点（值） */
+  hole?: number;
+}
+const cfgs: Record<string, Cfg> = {
+  osc: {
+    f: (x) => Math.sin(1 / x),
+    limit: '不存在', atZero: '第二类 · 振荡间断',
+    note: '越放大越疯狂：在 −1 与 1 之间无限振荡，不趋于任何值。这就是"极限不存在"最经典的样子。',
+    ylim: 1.6,
+  },
+  squeeze: {
+    f: (x) => x * Math.sin(1 / x),
+    envelopes: [Math.abs, (x) => -Math.abs(x)],
+    limit: '0', atZero: '补充定义后连续',
+    note: '函数值被死死夹在 ±|x| 之间：x 缩小，活动范围一起缩小，极限被"夹"成 0。这就是夹逼准则的现场。',
+    ylim: 1.6,
+    hole: 0,
+  },
+  jump: {
+    f: (x) => Math.abs(x) / x,
+    limit: '不存在（左 −1 / 右 +1）', atZero: '第一类 · 跳跃间断',
+    note: '两侧各自有极限（−1 与 +1），但中间隔着一条永远跳不过去的沟。跳跃间断：左极限、右极限都在，只是不相等。',
+    ylim: 2.2,
+  },
+  removable: {
+    f: (x) => Math.sin(x) / x,
+    limit: '1', atZero: '第一类 · 可去间断',
+    note: 'x=0 处没定义（空心点），但两侧极限都是 1——补上 f(0)=1 就连续了。"可去"就是这一颗可以补上的洞。',
+    ylim: 1.8,
+    hole: 1,
+  },
+};
+
+const canvas = document.getElementById('lc-canvas') as HTMLCanvasElement;
+const zoomInput = document.getElementById('lc-zoom') as HTMLInputElement;
+const fSel = document.getElementById('lc-f') as HTMLSelectElement;
+const message = document.getElementById('lc-message')!;
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const cfg = cfgs[fSel.value];
+  // 滑块 0..100 → 范围 4.5..0.15（对数式缩小）
+  const t = Number(zoomInput.value) / 100;
+  const half = 4.5 * Math.pow(0.15 / 4.5, t);
+  const box = { xmin: -half, xmax: half, ymin: -cfg.ylim, ymax: cfg.ylim };
+  const s = makeScale(box, w, h, 8);
+  drawAxes(ctx, s, box, half > 1 ? 1 : 0.2, 0.5);
+  document.getElementById('lc-zoom-out')!.textContent = `${(4.5 / half).toFixed(1)}×`;
+  document.getElementById('lc-range')!.textContent = `±${half.toFixed(2)}`;
+  document.getElementById('lc-limit')!.textContent = cfg.limit;
+  document.getElementById('lc-point')!.textContent = cfg.atZero;
+
+  ctx.font = '12px ui-monospace, monospace';
+  ctx.fillStyle = 'rgba(80,80,110,.65)';
+  ctx.textAlign = 'left';
+
+  if (cfg.envelopes) {
+    ctx.setLineDash([5, 5]);
+    ctx.strokeStyle = 'rgba(200,70,70,.8)';
+    ctx.lineWidth = 1.4;
+    for (const env of cfg.envelopes) plotFunction(ctx, s, env);
+    ctx.setLineDash([]);
+    ctx.fillText('红色虚线 = ±|x|（活动范围）', 12, h - 10);
+  }
+
+  ctx.strokeStyle = '#3b3f8f';
+  ctx.lineWidth = 2.2;
+  plotFunction(ctx, s, cfg.f);
+
+  if (cfg.hole !== undefined) {
+    ctx.beginPath();
+    ctx.arc(s.x2px(0), s.y2px(cfg.hole), 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 2; ctx.stroke();
+  }
+
+  const x0 = s.x2px(0);
+  if (fSel.value === 'jump') {
+    ctx.fillStyle = '#3b3f8f';
+    ctx.beginPath(); ctx.arc(x0, s.y2px(1), 4, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x0, s.y2px(-1), 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  message.textContent = half > 1 ? `${cfg.note}（继续放大）` : cfg.note;
+}
+
+for (const el of [zoomInput, fSel]) el.addEventListener('input', draw);
+document.getElementById('lc-reset')!.addEventListener('click', () => {
+  zoomInput.value = '0'; fSel.value = 'osc'; draw();
+});
+window.addEventListener('resize', draw);
+draw();
+</script>

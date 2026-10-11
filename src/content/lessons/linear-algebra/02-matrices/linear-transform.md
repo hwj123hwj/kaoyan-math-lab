@@ -5,7 +5,7 @@ order: 1
 title: 矩阵即变换：看见线性代数
 subtitle: 输入一个 2×2 矩阵，看平面如何被拉伸、旋转、压扁
 minutes: 16
-labs: [matrix]
+labs: [matrix, compose]
 quiz: la-transform
 ---
 

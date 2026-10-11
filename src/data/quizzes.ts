@@ -1,13 +1,14 @@
 /**
  * 练习题库。stem / options / explain 中的 LaTeX 用 $...$ 包裹，
  * 构建时经 KaTeX 渲染为 HTML（见 Quiz.astro）。
- * answer 是正确选项的下标（从 0 开始）。
+ * answer 是正确选项的下标（从 0 开始）；difficulty 省略为 basic。
  */
 export interface Question {
   stem: string;
   options: string[];
   answer: number;
   explain: string;
+  difficulty?: 'basic' | 'advanced';
 }
 
 export interface QuizSet {
@@ -152,6 +153,7 @@ export const quizzes: Record<string, QuizSet> = {
         options: ['$0$', '$\\dfrac{1}{2}$', '$1$', '$\\infty$'],
         answer: 1,
         explain: '$e^{x}=1+x+\\dfrac{x^{2}}{2}+o(x^{2})$，代入后分子为 $\\dfrac{x^{2}}{2}+o(x^{2})$，故极限为 $\\dfrac12$。泰勒公式处理这类"消去主导项"的极限比洛必达更快。',
+        difficulty: 'advanced',
       },
       {
         stem: '几何级数 $\\displaystyle\\sum_{n=0}^{\\infty}x^{n}=\\dfrac{1}{1-x}$ 的收敛域是',
@@ -230,6 +232,289 @@ export const quizzes: Record<string, QuizSet> = {
         options: ['$0.2$', '$0.04$', '$2$', '$4$'],
         answer: 0,
         explain: '$\\operatorname{Var}(\\bar X)=\\dfrac{\\sigma^{2}}{n}=\\dfrac{4}{100}$，故标准差为 $2/10=0.2$。样本量翻四倍，精度才翻一倍——这解释了为什么模拟要"够多"。',
+      },
+    ],
+  },
+  'cal-limits-2': {
+    id: 'cal-limits-2',
+    title: '极限存在性练习 5 题',
+    questions: [
+      {
+        stem: '$\\lim_{x\\to 0}\\sin\\dfrac{1}{x}$ 的存在情况是',
+        options: ['等于 $0$', '等于 $1$', '不存在（振荡）', '等于 $\\infty$'],
+        answer: 2,
+        explain: '$x\\to 0^+$ 时 $\\dfrac1x\\to+\\infty$，$\\sin\\dfrac1x$ 在 $[-1,1]$ 间无限振荡，不趋于任何值，极限不存在。实验室里放大 $x=0$ 附近可以亲眼看这个振荡。',
+      },
+      {
+        stem: '$\\lim_{x\\to 0}x\\sin\\dfrac{1}{x} = ?$',
+        options: ['不存在', '$0$', '$1$', '$\\infty$'],
+        answer: 1,
+        explain: '"有界 × 无穷小 = 无穷小"：$\\left|\\sin\\frac1x\\right|\\le 1$ 有界，$x\\to0$ 是无穷小，夹在 $\\pm|x|$ 之间被压到 $0$。注意它与上一题的区别：乘上一个无穷小，振荡就被驯服了。',
+        difficulty: 'advanced',
+      },
+      {
+        stem: '关于夹逼准则，下列说法正确的是',
+        options: [
+          '只要 $g(x)\\le f(x)\\le h(x)$，$f$ 的极限就存在',
+          '需要 $g\\le f\\le h$ 且 $\\lim g=\\lim h=A$，则 $\\lim f=A$',
+          '夹逼准则只适用于数列',
+          '夹逼准则要求 $f$ 单调',
+        ],
+        answer: 1,
+        explain: '夹逼的前提是两侧函数极限相等（且同为 $A$ 或同为 $\\infty$），此时中间的 $f$ 被迫趋于 $A$。两侧极限不相等时夹不出任何结论。',
+      },
+      {
+        stem: '函数 $f(x)=\\dfrac{|x|}{x}$ 在 $x=0$ 处的间断类型是',
+        options: ['可去间断点', '跳跃间断点', '无穷间断点', '振荡间断点'],
+        answer: 1,
+        explain: '左极限 $-1$、右极限 $+1$，都存在但不相等——典型的跳跃间断点。实验室把函数切到 $|x|/x$ 放大即可看到"悬崖"。',
+      },
+      {
+        stem: '判断：单调递增且有上界的数列必收敛。',
+        options: ['正确', '错误'],
+        answer: 0,
+        explain: '单调有界定理（实数完备性的等价刻画之一）。它是证明"一切实数都有唯一确定值"类问题的关键工具，例如证明数列 $\\left(1+\\frac1n\\right)^n$ 收敛到 $e$。',
+      },
+    ],
+  },
+  'cal-mvt': {
+    id: 'cal-mvt',
+    title: '中值定理练习 5 题',
+    questions: [
+      {
+        stem: '拉格朗日中值公式的正确形式是',
+        options: [
+          '$f(b)-f(a)=f\'(\\xi)(b-a)$，$\\xi\\in(a,b)$',
+          '$f(b)-f(a)=f\'(\\xi)(a-b)$，$\\xi\\in(a,b)$',
+          '$f(b)+f(a)=f\'(\\xi)(b-a)$，$\\xi\\in[a,b]$',
+          '$f(b)-f(a)=f\'(b)(b-a)$',
+        ],
+        answer: 0,
+        explain: '几何意义：曲线上存在一点，其切线平行于连接两端点的弦。实验室里拖动 $\\xi$ 能找到这个点。',
+      },
+      {
+        stem: '柯西中值定理中，除"$f,g$ 在 $[a,b]$ 连续、$(a,b)$ 可导"外还需要',
+        options: ['$g(b)=g(a)$', '$g\'(x)\\ne 0$（$x\\in(a,b)$）且 $g(b)\\ne g(a)$', '$g(x)=x$', '$f\'(x)\\ne 0$'],
+        answer: 1,
+        explain: '柯西定理把拉格朗日中的"水平弦"推广为参数曲线 $(g(t),f(t))$ 的任意弦；$g\'\\ne0$ 保证分母有意义，$g(b)\\ne g(a)$ 由其推出。取 $g(x)=x$ 即退化为拉格朗日中值定理。',
+      },
+      {
+        stem: '$f(x)=|x|$ 在 $[-1,1]$ 上不满足罗尔定理，原因是',
+        options: ['端点函数值不相等', '在 $[-1,1]$ 上不连续', '在 $(-1,1)$ 内不可导（$x=0$ 处）', '它是偶函数'],
+        answer: 2,
+        explain: '三个条件里前两个都满足（连续、$f(-1)=f(1)=1$），坏在 $x=0$ 处不可导。检查中值定理条件时按"连续 → 可导 → 端点值"顺序逐条核对。',
+      },
+      {
+        stem: '用中值定理证明 $\\ln(1+x)<x$（$x>0$），最直接的构造是',
+        options: [
+          '对 $f(t)=\\ln(1+t)$ 在 $[0,x]$ 用拉格朗日中值定理',
+          '对 $f(t)=t-\\ln(1+t)$ 在 $[0,1]$ 用罗尔定理',
+          '用柯西中值定理取 $g(t)=e^t$',
+          '用夹逼准则',
+        ],
+        answer: 0,
+        explain: '$\\ln(1+x)-\\ln 1=\\dfrac{x}{1+\\xi}<x$（$0<\\xi<x$）。拉格朗日公式的标准用法：把"函数值之差"翻译成"中间点的导数"再放缩。',
+        difficulty: 'advanced',
+      },
+      {
+        stem: '判断：拉格朗日中值定理要求 $f\'$ 在 $(a,b)$ 内连续。',
+        options: ['正确', '错误'],
+        answer: 1,
+        explain: '只要求 $(a,b)$ 内可导（连续性是对 $f$ 本身在闭区间的要求）。$f\'$ 甚至可以处处不连续——例如 $f(x)=\\begin{cases}x^2\\sin\\frac1x,&x\\ne0\\\\0,&x=0\\end{cases}$ 相关的函数。分清"对谁连续"是证明题的送分/送命分界线。',
+      },
+    ],
+  },
+  'cal-int-techniques': {
+    id: 'cal-int-techniques',
+    title: '积分技巧练习 5 题',
+    questions: [
+      {
+        stem: '$\\displaystyle\\int x e^{x}\\,dx = ?$',
+        options: ['$(x-1)e^{x}+C$', '$xe^{x}+C$', '$\\dfrac{x^{2}}{2}e^{x}+C$', '$(x+1)e^{x}+C$'],
+        answer: 0,
+        explain: '分部积分取 $u=x$、$dv=e^x dx$：$\\int xe^x dx = xe^x-\\int e^x dx = (x-1)e^x+C$。幂函数与指数相乘，让幂函数降次。',
+      },
+      {
+        stem: '$\\displaystyle\\int \\dfrac{\\ln x}{x}\\,dx = ?$',
+        options: ['$\\dfrac{(\\ln x)^{2}}{2}+C$', '$\\dfrac{\\ln x^{2}}{2}+C$', '$\\ln\\ln x + C$', '$-\\dfrac{1}{x\\ln x}+C$'],
+        answer: 0,
+        explain: '凑微分：$\\dfrac{dx}{x}=d(\\ln x)$，原式 $=\\int \\ln x\\, d(\\ln x)=\\dfrac{(\\ln x)^2}{2}+C$。看到 $\\frac{1}{x}$ 就想 $d(\\ln x)$。',
+      },
+      {
+        stem: '$\\displaystyle\\int_0^{\\pi/2} \\sin x\\,dx = ?$',
+        options: ['$0$', '$1$', '$\\dfrac{\\pi}{2}$', '$2$'],
+        answer: 1,
+        explain: '$\\left.-\\cos x\\right|_0^{\\pi/2}=-(0)+1=1$。',
+      },
+      {
+        stem: '$\\displaystyle\\int_0^{1}\\dfrac{dx}{1+x^{2}} = ?$',
+        options: ['$\\dfrac{\\pi}{4}$', '$\\dfrac{\\pi}{2}$', '$\\ln 2$', '$\\arctan 1 - \\arctan 0$ 的平方'],
+        answer: 0,
+        explain: '$\\left.\\arctan x\\right|_0^1=\\dfrac{\\pi}{4}$。$\\arctan 1=\\dfrac{\\pi}{4}$ 是必背值。',
+      },
+      {
+        stem: '$\\displaystyle\\int_0^{4}\\dfrac{dx}{1+\\sqrt{x}} = ?$',
+        options: ['$4-2\\ln 3$', '$2\\ln 3$', '$4$', '$2-2\\ln 3$'],
+        answer: 0,
+        explain: '令 $t=\\sqrt x$（$dx=2t\\,dt$，$x:0\\to4$ 即 $t:0\\to2$）：$\\int_0^2\\dfrac{2t}{1+t}dt=2\\int_0^2\\left(1-\\dfrac{1}{1+t}\\right)dt=2\\left[t-\\ln(1+t)\\right]_0^2=4-2\\ln 3$。换元必须连上下限一起换。',
+        difficulty: 'advanced',
+      },
+    ],
+  },
+  'la-systems': {
+    id: 'la-systems',
+    title: '线性方程组练习 5 题',
+    questions: [
+      {
+        stem: '齐次方程组 $Ax=0$（$n$ 个未知量，$r(A)=r$）的基础解系含向量的个数是',
+        options: ['$r$', '$n-r$', '$n$', '$n+r$'],
+        answer: 1,
+        explain: '解空间的维数 = 自由未知量个数 = $n-r$。"维数定个数"是解结构问题的第一句话。',
+      },
+      {
+        stem: '非齐次方程组 $Ax=b$ 有解的充分必要条件是',
+        options: ['$r(A)=n$', '$r(A)=r(A\\,|\\,b)$', '$b\\ne 0$', '$\\det A\\ne 0$'],
+        answer: 1,
+        explain: '增广矩阵与系数矩阵秩相等 ⟺ $b$ 能由 $A$ 的列向量线性表出 ⟺ 有解。$\\det A\\ne0$ 只是"唯一解"的充分条件（方阵情形）。',
+      },
+      {
+        stem: '若 $r(A)=n$（未知量个数），则齐次方程组 $Ax=0$',
+        options: ['有无穷多解', '只有零解', '有非零解', '可能无解'],
+        answer: 1,
+        explain: '$n-r=n-n=0$，基础解系为空，解空间只有零向量。齐次方程组永远有零解，所以对它只问"有没有非零解"。',
+      },
+      {
+        stem: '设 $\\xi_1,\\xi_2$ 是 $Ax=b$ 的两个不同解，则下列一定是 $Ax=0$ 的解的是',
+        options: ['$\\xi_1+\\xi_2$', '$\\xi_1-\\xi_2$', '$\\xi_1$', '$2\\xi_1-\\xi_2$'],
+        answer: 1,
+        explain: '$A(\\xi_1-\\xi_2)=b-b=0$。非齐次两解之差落入齐次解——这正是通解结构 $x=\\xi^*+k_1\\eta_1+\\cdots$ 的来源。',
+      },
+      {
+        stem: '判断：方程个数多于未知量个数的线性方程组一定无解。',
+        options: ['正确', '错误'],
+        answer: 1,
+        explain: '方程多只说明约束多，可能恰有解也可能矛盾，要用秩判定。反例：$\\begin{cases}x=1\\\\2x=2\\end{cases}$ 有解 $x=1$。',
+      },
+    ],
+  },
+  'la-eigen': {
+    id: 'la-eigen',
+    title: '特征值练习 5 题',
+    questions: [
+      {
+        stem: '$\\lambda$ 是 $A$ 的特征值，$\\vec v$ 是对应特征向量，则',
+        options: ['$A\\vec v=\\lambda \\vec v$，$\\vec v\\ne\\vec 0$', '$A\\vec v=\\vec 0$', '$\\vec v=\\lambda A\\vec v$', '$A\\vec v=\\lambda \\vec v$ 对任意 $\\vec v$ 成立'],
+        answer: 0,
+        explain: '定义本身就是判别式：特征向量必须非零，且"变换后仍在原方向上"。零向量永远满足等式，所以必须排除。',
+      },
+      {
+        stem: '设 $A=\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}$，则 $A$ 的特征值之和为',
+        options: ['$5$', '$-2$', '$4$', '$7$'],
+        answer: 0,
+        explain: '特征值之和 $=\\operatorname{tr}(A)=1+4=5$，之积 $=\\det A=4-6=-2$。这两条关系是特征值填空题的抢分神器。',
+      },
+      {
+        stem: '$n$ 阶矩阵 $A$ 可相似对角化的充分必要条件是',
+        options: [
+          '$A$ 有 $n$ 个不同的特征值',
+          '$A$ 是实对称矩阵',
+          '对每个 $k$ 重特征值，$r(A-\\lambda E)=n-k$',
+          '$\\det A\\ne 0$',
+        ],
+        answer: 2,
+        explain: '本质是"每个特征值提供的线性无关特征向量个数等于重数"。$A$ 有 $n$ 个互异特征值只是充分条件；实对称是重要的充分条件而非必要条件。',
+        difficulty: 'advanced',
+      },
+      {
+        stem: '关于实对称矩阵的特征值与特征向量，下列说法错误的是',
+        options: ['特征值都是实数', '不同特征值的特征向量相互正交', '必可正交对角化', '特征值一定互不相同'],
+        answer: 3,
+        explain: '实对称矩阵可以有重根（如单位矩阵），A、B、C 都是实对称矩阵的标准定理。错误项就是考点：重根完全允许。',
+      },
+      {
+        stem: '判断：两个矩阵有相同的特征值，则它们一定相似。',
+        options: ['正确', '错误'],
+        answer: 1,
+        explain: '相似 ⟹ 特征值相同，但反过来不成立：$\\begin{pmatrix}1&1\\\\0&1\\end{pmatrix}$ 与 $E$ 特征值相同（都是 $1$），却不对角化、不相似于 $E$。特征值只是相似的必要条件。',
+      },
+    ],
+  },
+  'la-quadratic': {
+    id: 'la-quadratic',
+    title: '二次型练习 5 题',
+    questions: [
+      {
+        stem: '二次型 $f(x_1,x_2)=2x_1^{2}+4x_1x_2+3x_2^{2}$ 的矩阵 $A$ 是',
+        options: [
+          '$\\begin{pmatrix}2&2\\\\2&3\\end{pmatrix}$',
+          '$\\begin{pmatrix}2&4\\\\0&3\\end{pmatrix}$',
+          '$\\begin{pmatrix}2&4\\\\4&3\\end{pmatrix}$',
+          '$\\begin{pmatrix}2&1\\\\1&3\\end{pmatrix}$',
+        ],
+        answer: 0,
+        explain: '二次型的矩阵必须对称：对角放平方项系数，非对角放交叉项系数的一半（$4x_1x_2 \\to a_{12}=a_{21}=2$）。写完检查 $A^T=A$。',
+      },
+      {
+        stem: '用正交变换 $x=Qy$ 化二次型为标准形，标准形的系数是',
+        options: ['$A$ 的主对角线元素', '$A$ 的特征值', '$A$ 的各行元素之和', '任意实数'],
+        answer: 1,
+        explain: '$Q^TAQ=\\Lambda=\\mathrm{diag}(\\lambda_1,\\dots,\\lambda_n)$，所以标准形 $f=\\sum\\lambda_i y_i^2$。几何上：转到特征向量方向看，椭圆的主轴方向就是特征方向。',
+      },
+      {
+        stem: '$n$ 元二次型正定的充分必要条件是',
+        options: ['顺序主子式全大于零', '特征值全小于零', '$\\det A>0$', '各阶主对角线元素大于零'],
+        answer: 0,
+        explain: '顺序主子式全正 ⟺ 正定，是最常用的充要判别法。$\\det A>0$ 只是必要条件（$n$ 阶顺序主子式之一）；特征值全正也充要但计算更重。',
+      },
+      {
+        stem: '二次型 $f(x,y)=x^{2}+4xy+2y^{2}$ 的正定性是',
+        options: ['正定', '负定', '不定', '半正定'],
+        answer: 2,
+        explain: '矩阵 $\\begin{pmatrix}1&2\\\\2&2\\end{pmatrix}$：一阶顺序主子式 $1>0$，二阶 $\\det=2-4=-2<0$，不满足全正 ⇒ 不定。几何上 $f=c$ 的等高线是双曲线型。',
+        difficulty: 'advanced',
+      },
+      {
+        stem: '判断：可逆线性变换不改变二次型的正定性。',
+        options: ['正确', '错误'],
+        answer: 0,
+        explain: '正定性在合同变换下不变（惯性定理：正、负惯性指数是合同不变量）。这就是为什么可以用配方法或正交变换把一般二次型化成标准形后再判正定。',
+      },
+    ],
+  },
+  'prob-bayes': {
+    id: 'prob-bayes',
+    title: '条件概率与贝叶斯练习 5 题',
+    questions: [
+      {
+        stem: '设 $P(A)=0.5$，$P(B)=0.4$，$P(AB)=0.3$，则 $P(A\\mid B) = ?$',
+        options: ['$0.6$', '$0.75$', '$0.15$', '$0.2$'],
+        answer: 1,
+        explain: '$P(A|B)=\\dfrac{P(AB)}{P(B)}=\\dfrac{0.3}{0.4}=0.75$。条件概率就是"把样本空间换成 $B$ 再算占比"。',
+      },
+      {
+        stem: '甲、乙两台机床产量分别占 $60\\%$ 与 $40\\%$，次品率分别为 $1\\%$ 与 $2\\%$。任取一件是次品的概率是',
+        options: ['$0.014$', '$0.015$', '$0.02$', '$0.006$'],
+        answer: 0,
+        explain: '全概率公式：$P(次)=0.6\\times0.01+0.4\\times0.02=0.006+0.008=0.014$。按"来源"分块加权。',
+      },
+      {
+        stem: '（续上题）已知取到的是次品，它来自乙机床的概率是',
+        options: ['$\\dfrac{4}{7}$', '$\\dfrac{2}{5}$', '$\\dfrac{1}{2}$', '$\\dfrac{4}{13}$'],
+        answer: 0,
+        explain: '贝叶斯公式：$P(乙|次)=\\dfrac{0.4\\times0.02}{0.014}=\\dfrac{0.008}{0.014}=\\dfrac47\\approx0.571$。乙产量少但次品率高，"事后"嫌疑反而更大——这就是贝叶斯的反直觉之处。',
+        difficulty: 'advanced',
+      },
+      {
+        stem: '设 $P(A)=0.5$，$P(B)=0.4$，则 $A$ 与 $B$ 相互独立的条件是',
+        options: ['$P(AB)=0.2$', '$P(AB)=0.3$', '$P(A)+P(B)=0.9$', '$A\\cap B=\\varnothing$'],
+        answer: 0,
+        explain: '独立的定义是 $P(AB)=P(A)P(B)=0.2$。注意"互不相容"（$P(AB)=0$）与"独立"是两回事：两个概率都正的事件不可能既互斥又独立。',
+      },
+      {
+        stem: '判断：若 $A$ 与 $B$ 相互独立，则 $A$ 与 $\\bar B$ 也相互独立。',
+        options: ['正确', '错误'],
+        answer: 0,
+        explain: '独立性的四件套：$A,B$、$A,\\bar B$、$\\bar A,B$、$\\bar A,\\bar B$ 同时独立或同时不独立。证明只需 $P(A\\bar B)=P(A)-P(AB)=P(A)(1-P(B))=P(A)P(\\bar B)$。',
       },
     ],
   },

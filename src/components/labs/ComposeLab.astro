@@ -1,0 +1,180 @@
+---
+// 复合变换实验室：先做 B 再做 A，动画分两幕；交换顺序直观呈现 AB ≠ BA。
+---
+<section class="lab" id="lab-compose" aria-label="复合变换实验室">
+  <div class="lab-toolbar">
+    <label>后做的 A <select id="cp-a">
+      <option value="rotate" selected>旋转 45°</option>
+      <option value="shear">剪切</option>
+      <option value="reflect">关于 y 轴反射</option>
+      <option value="scale">放大 1.5 倍</option>
+    </select></label>
+    <label>先做的 B <select id="cp-b">
+      <option value="shear" selected>剪切</option>
+      <option value="rotate">旋转 45°</option>
+      <option value="reflect">关于 y 轴反射</option>
+      <option value="scale">放大 1.5 倍</option>
+    </select></label>
+    <button id="cp-play" class="button primary" type="button">播放两幕变换</button>
+    <button id="cp-swap" class="button" type="button">交换 A、B 顺序</button>
+    <button id="cp-reset" class="text-button" type="button">重置</button>
+  </div>
+  <canvas id="cp-canvas" class="lab-canvas lab-canvas-tall" height="420" aria-label="复合变换动画"></canvas>
+  <div class="lab-readouts">
+    <div><span>第一幕：î 的去向（B 作用后）</span><code id="cp-b-ivec">—</code></div>
+    <div><span>第二幕结束：î 的去向（AB 作用后）</span><code id="cp-ab-ivec">—</code></div>
+    <div><span>复合矩阵 AB</span><code id="cp-ab">—</code><small>A·B</small></div>
+    <div><span>det(AB)</span><code id="cp-det">—</code><small>= det A · det B</small></div>
+  </div>
+  <p class="lab-message" id="cp-message" role="status">矩阵从右往左读：x → B x → A(B x)。播放后点“交换顺序”，看结果变不变。</p>
+</section>
+
+<script>
+import { fitCanvas, reducedMotion } from '../../lib/plot';
+
+type Mat = [number, number, number, number];
+const canvas = document.getElementById('cp-canvas') as HTMLCanvasElement;
+const aSel = document.getElementById('cp-a') as HTMLSelectElement;
+const bSel = document.getElementById('cp-b') as HTMLSelectElement;
+const play = document.getElementById('cp-play') as HTMLButtonElement;
+const message = document.getElementById('cp-message')!;
+
+const PRESETS: Record<string, Mat> = {
+  rotate: [Math.SQRT1_2, -Math.SQRT1_2, Math.SQRT1_2, Math.SQRT1_2],
+  shear: [1, 1, 0, 1],
+  reflect: [-1, 0, 0, 1],
+  scale: [1.5, 0, 0, 1.5],
+};
+const NAMES: Record<string, string> = { rotate: '旋转 45°', shear: '剪切', reflect: '关于 y 轴反射', scale: '放大 1.5 倍' };
+
+const mul = (A: Mat, B: Mat): Mat => [
+  A[0] * B[0] + A[1] * B[2], A[0] * B[1] + A[1] * B[3],
+  A[2] * B[0] + A[3] * B[2], A[2] * B[1] + A[3] * B[3],
+];
+const apply = (m: Mat, x: number, y: number): [number, number] => [m[0] * x + m[1] * y, m[2] * x + m[3] * y];
+const round = (v: number) => Math.round(v * 100) / 100;
+const matStr = (m: Mat) => `(${round(m[0])}, ${round(m[1])}; ${round(m[2])}, ${round(m[3])})`;
+
+let raf: number | null = null;
+function stop() { if (raf !== null) { cancelAnimationFrame(raf); raf = null; play.textContent = '播放两幕变换'; } }
+
+/** phase 0：I→B；phase 1：B→A·B；t 为幕内进度 */
+function currentMatrix(): { m: Mat; phase: number; t: number } {
+  const A = PRESETS[aSel.value], B = PRESETS[bSel.value];
+  if (raf === null) return { m: mul(A, B), phase: 1, t: 1 };
+  const el = canvas.dataset.anim || '0-0';
+  const [ph, tt] = el.split('-').map(Number);
+  const t = tt / 1000;
+  const ease = 1 - Math.pow(1 - t, 3);
+  if (ph === 0) {
+    return { m: B.map((v) => v * ease) as unknown as Mat, phase: 0, t: ease };
+  }
+  const from = B, to = mul(A, B);
+  return { m: from.map((v, i) => v + (to[i] - v) * ease) as unknown as Mat, phase: 1, t: ease };
+}
+
+function draw() {
+  const fit = fitCanvas(canvas); if (!fit) return;
+  const { ctx, w, h } = fit;
+  const A = PRESETS[aSel.value], B = PRESETS[bSel.value];
+  const { m, phase, t } = currentMatrix();
+  const cx = w / 2, cy = h / 2;
+  const unit = Math.min(w, h) / 9;
+  const px = (x: number, y: number): [number, number] => [cx + x * unit, cy - y * unit];
+  const det = m[0] * m[3] - m[1] * m[2];
+
+  ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(59,63,143,.16)';
+  const range = 12, len = (w + h) / unit;
+  for (let k = -range; k <= range; k++) {
+    for (const dir of [[0, 1], [1, 0]] as [number, number][]) {
+      const [dx, dy] = apply(m, dir[0], dir[1]);
+      const [bx, by] = apply(m, dir[0] === 1 ? k : 0, dir[0] === 1 ? 0 : k);
+      const [x0, y0] = px(bx - dx * len, by - dy * len);
+      const [x1, y1] = px(bx + dx * len, by + dy * len);
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+    }
+  }
+
+  ctx.beginPath();
+  const corners = [apply(m, 0, 0), apply(m, 1, 0), apply(m, 1, 1), apply(m, 0, 1)];
+  corners.forEach(([x, y], i) => { const [qx, qy] = px(x, y); if (i === 0) ctx.moveTo(qx, qy); else ctx.lineTo(qx, qy); });
+  ctx.closePath();
+  ctx.fillStyle = det >= 0 ? 'rgba(59,63,143,.24)' : 'rgba(200,70,70,.24)';
+  ctx.fill();
+  ctx.strokeStyle = det >= 0 ? '#3b3f8f' : '#c84646';
+  ctx.lineWidth = 1.6; ctx.stroke();
+
+  arrow(ctx, px(0, 0), px(m[0], m[2]), '#1f9d6b');
+  arrow(ctx, px(0, 0), px(m[1], m[3]), '#c07f00');
+
+  ctx.font = '12px ui-monospace, monospace'; ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(80,80,110,.85)';
+  const ab = mul(A, B);
+  ctx.fillText(phase === 0
+    ? `第一幕：只做 B（${NAMES[bSel.value]}）`
+    : `第二幕：再做 A（${NAMES[aSel.value]}）——总效果 ${NAMES[aSel.value]} ∘ ${NAMES[bSel.value]}`, 12, 20);
+
+  document.getElementById('cp-b-ivec')!.textContent = `(${round(B[0])}, ${round(B[2])})`;
+  document.getElementById('cp-ab-ivec')!.textContent = `(${round(ab[0])}, ${round(ab[2])})`;
+  document.getElementById('cp-ab')!.textContent = matStr(ab);
+  document.getElementById('cp-det')!.textContent = String(round(ab[0] * ab[3] - ab[1] * ab[2]));
+
+  if (raf === null) {
+    message.textContent = '点“播放两幕变换”看全过程；然后点“交换 A、B 顺序”再播一次——大多数情况下终点的四边形方向和位置都会不一样：AB ≠ BA。';
+  } else if (phase === 0) {
+    message.textContent = `第一幕：B 先把平面变形（î → (${round(B[0])}, ${round(B[2])})）。`;
+  } else {
+    message.textContent = `第二幕：A 在 B 的结果上继续变形。总矩阵 AB = ${matStr(ab)}，面积倍数 det(AB) = ${round(ab[0] * ab[3] - ab[1] * ab[2])}。`;
+  }
+}
+
+function arrow(ctx: CanvasRenderingContext2D, from: [number, number], to: [number, number], color: string) {
+  ctx.strokeStyle = color; ctx.fillStyle = color; ctx.lineWidth = 2.4;
+  ctx.beginPath(); ctx.moveTo(from[0], from[1]); ctx.lineTo(to[0], to[1]); ctx.stroke();
+  const ang = Math.atan2(to[1] - from[1], to[0] - from[0]);
+  ctx.beginPath();
+  ctx.moveTo(to[0], to[1]);
+  ctx.lineTo(to[0] - 10 * Math.cos(ang - Math.PI / 6), to[1] - 10 * Math.sin(ang - Math.PI / 6));
+  ctx.lineTo(to[0] - 10 * Math.cos(ang + Math.PI / 6), to[1] - 10 * Math.sin(ang + Math.PI / 6));
+  ctx.closePath(); ctx.fill();
+}
+
+play.addEventListener('click', () => {
+  if (raf !== null) { stop(); draw(); return; }
+  if (reducedMotion()) { draw(); return; }
+  canvas.dataset.anim = '0-0';
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const el = now - t0;
+    if (el < 900) {
+      canvas.dataset.anim = `0-${el}`;
+    } else if (el < 1800) {
+      canvas.dataset.anim = `1-${el - 900}`;
+    } else {
+      canvas.dataset.anim = '1-1000';
+      draw();
+      stop();
+      return;
+    }
+    draw();
+    raf = requestAnimationFrame(step);
+  };
+  play.textContent = '暂停';
+  raf = requestAnimationFrame(step);
+});
+
+function refreshStop() { stop(); canvas.dataset.anim = '1-1000'; draw(); }
+aSel.addEventListener('change', refreshStop);
+bSel.addEventListener('change', refreshStop);
+document.getElementById('cp-swap')!.addEventListener('click', () => {
+  const a = aSel.value; aSel.value = bSel.value; bSel.value = a;
+  refreshStop();
+});
+document.getElementById('cp-reset')!.addEventListener('click', () => {
+  aSel.value = 'rotate'; bSel.value = 'shear'; refreshStop();
+});
+window.addEventListener('resize', draw);
+canvas.dataset.anim = '1-1000';
+draw();
+</script>

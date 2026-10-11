@@ -14,6 +14,7 @@
       <option value="left" selected>左端点</option>
       <option value="mid">中点</option>
       <option value="right">右端点</option>
+      <option value="trapezoid">梯形法</option>
     </select></label>
     <button id="ri-anim" class="button" type="button">逐渐加密</button>
     <button id="ri-reset" class="text-button" type="button">重置</button>
@@ -61,19 +62,31 @@ function draw() {
   const dx = (cfg.b - cfg.a) / n;
   const mode = modeSel.value;
   let sum = 0;
-  const pxA = s.x2px(cfg.a), pxB = s.x2px(cfg.b), px0 = s.y2px(0);
+  const px0 = s.y2px(0);
 
   for (let i = 0; i < n; i++) {
     const xi = cfg.a + i * dx;
-    const xs = mode === 'left' ? xi : mode === 'right' ? xi + dx : xi + dx / 2;
-    const y = cfg.f(xs);
-    sum += y * dx;
     ctx.fillStyle = 'rgba(59,63,143,.28)';
     ctx.strokeStyle = 'rgba(59,63,143,.75)';
     ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.rect(s.x2px(xi), Math.min(px0, s.y2px(y)), s.x2px(xi + dx) - s.x2px(xi), Math.abs(s.y2px(y) - px0));
-    ctx.fill(); ctx.stroke();
+    if (mode === 'trapezoid') {
+      const y0v = cfg.f(xi), y1v = cfg.f(xi + dx);
+      sum += ((y0v + y1v) / 2) * dx;
+      ctx.beginPath();
+      ctx.moveTo(s.x2px(xi), px0);
+      ctx.lineTo(s.x2px(xi), s.y2px(y0v));
+      ctx.lineTo(s.x2px(xi + dx), s.y2px(y1v));
+      ctx.lineTo(s.x2px(xi + dx), px0);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+    } else {
+      const xs = mode === 'left' ? xi : mode === 'right' ? xi + dx : xi + dx / 2;
+      const y = cfg.f(xs);
+      sum += y * dx;
+      ctx.beginPath();
+      ctx.rect(s.x2px(xi), Math.min(px0, s.y2px(y)), s.x2px(xi + dx) - s.x2px(xi), Math.abs(s.y2px(y) - px0));
+      ctx.fill(); ctx.stroke();
+    }
   }
 
   ctx.strokeStyle = '#3b3f8f'; ctx.lineWidth = 2.2;
@@ -94,7 +107,7 @@ function draw() {
     ? `n = 1：一个粗糙的矩形。误差 ${Math.abs(err).toFixed(4)}。现在加密它。`
     : Math.abs(err) < 0.01
       ? `n = ${n}：误差已小于 0.01。继续加密，和与精确值几乎分不出来——这就是"无限分割取极限"。`
-      : `n = ${n}：误差 ${Math.abs(err).toFixed(4)}。${mode === 'mid' ? '中点取样收敛得更快。' : '换成中点取样，同样 n 下误差通常更小。'}`;
+      : `n = ${n}：误差 ${Math.abs(err).toFixed(4)}。${mode === 'mid' ? '中点取样收敛得更快。' : mode === 'trapezoid' ? '梯形法把每个小条的顶换成一梯形，凸函数上与中点法误差相抵，收敛也快。' : '换成中点或梯形法，同样 n 下误差通常更小。'}`;
 }
 
 for (const el of [nInput, fSel, modeSel]) el.addEventListener('input', () => { stop(); draw(); });

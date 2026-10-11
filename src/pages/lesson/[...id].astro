@@ -7,6 +7,9 @@ import RiemannLab from '../../components/labs/RiemannLab.astro';
 import TaylorLab from '../../components/labs/TaylorLab.astro';
 import MatrixLab from '../../components/labs/MatrixLab.astro';
 import ProbabilityLab from '../../components/labs/ProbabilityLab.astro';
+import LimitCasesLab from '../../components/labs/LimitCasesLab.astro';
+import MvtLab from '../../components/labs/MvtLab.astro';
+import ComposeLab from '../../components/labs/ComposeLab.astro';
 import { courseMap, chapterOf } from '../../data/courses';
 import { labMap } from '../../data/labs';
 import { allLessons, lessonPath } from '../../lib/lessons-server';
@@ -23,6 +26,7 @@ const chapter = chapterOf(lesson.data.course, lesson.data.chapter);
 const lessonLabs = lesson.data.labs.map((id) => labMap.get(id)).filter(Boolean);
 const labComponents: Record<string, typeof DerivativeLab> = {
   derivative: DerivativeLab, riemann: RiemannLab, taylor: TaylorLab, matrix: MatrixLab, probability: ProbabilityLab,
+  'limit-cases': LimitCasesLab, mvt: MvtLab, compose: ComposeLab,
 };
 
 const ordered = await allLessons();
