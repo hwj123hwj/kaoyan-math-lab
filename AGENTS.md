@@ -17,6 +17,7 @@
 - **错题本引用 `${quizId}#${下标}`**：已上线的题组禁止插入或重排已有题目（末尾追加安全），改动前先想清楚用户本地错题记录的兼容。
 - 进度存储 key（`kaoyan-math-progress-v1`）结构只做加式演进，读取端必须对缺失字段给默认值。
 - `npm run build` 末尾跑 pagefind 建索引；`/search` 在 dev 下不可用属预期，验收搜索用 `npm run preview`。
+- **Service Worker 铁律**：SW 不得把"重定向响应"（`response.redirected === true`）写入缓存或返回给导航请求，浏览器会直接判 ERR_FAILED；预缓存列表一律用带尾斜杠的最终地址，改 SW 后必须升级 `CACHE` 版本号并验证无斜杠地址可访问。
 
 ## 风格
 
