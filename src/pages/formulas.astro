@@ -1,12 +1,6 @@
 ---
-import katex from 'katex';
 import Base from '../layouts/Base.astro';
-
-/** 把 $...$ 中的 LaTeX 渲染为 KaTeX HTML（构建期完成） */
-function tex(input: string): string {
-  return input.replace(/\$([^$]+)\$/g, (_, expr: string) =>
-    katex.renderToString(expr, { throwOnError: true, output: 'html' }));
-}
+import { tex } from '../lib/tex';
 
 
 interface Row { k: string; v: string }

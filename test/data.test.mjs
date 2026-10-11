@@ -10,7 +10,7 @@ import katex from 'katex';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const lessonsDir = join(root, 'src', 'content', 'lessons');
-const LAB_IDS = new Set(['derivative', 'riemann', 'taylor', 'matrix', 'probability']);
+const LAB_IDS = new Set(['derivative', 'riemann', 'taylor', 'matrix', 'probability', 'limit-cases', 'mvt', 'compose']);
 
 test('课程数据：章节 id 唯一且序号递增', () => {
   for (const c of courses) {
@@ -85,6 +85,7 @@ test('题库：结构正确且全部公式可用 KaTeX 渲染', () => {
       assert.ok(q.options.length >= 2, `${set.id} 第 ${i + 1} 题选项过少`);
       assert.ok(q.answer >= 0 && q.answer < q.options.length, `${set.id} 第 ${i + 1} 题 answer 越界`);
       assert.ok(q.explain.trim().length > 20, `${set.id} 第 ${i + 1} 题解析过短`);
+      assert.ok(q.difficulty === undefined || q.difficulty === 'basic' || q.difficulty === 'advanced', `${set.id} 第 ${i + 1} 题 difficulty 非法`);
       renderTexAll(q.stem, `${set.id}#${i + 1} 题干`);
       q.options.forEach((o, j) => renderTexAll(o, `${set.id}#${i + 1} 选项 ${j}`));
       renderTexAll(q.explain, `${set.id}#${i + 1} 解析`);

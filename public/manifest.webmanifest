@@ -1,0 +1,14 @@
+{
+  "name": "考研数学实验室",
+  "short_name": "数学实验室",
+  "description": "高数、线代、概率论的交互学习站：实验室 + 随堂练习 + 错题复习。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b3f8f",
+  "lang": "zh-CN",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

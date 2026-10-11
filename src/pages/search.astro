@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="搜索 · 考研数学实验室" description="全站搜索课时、概念与公式。">
+  <section class="hero">
+    <p class="kicker">全站</p>
+    <h1>搜索</h1>
+    <p class="lead">按概念名、章节名或关键词找课时与公式，例如「泰勒」「正定」「贝叶斯」「大数定律」。</p>
+  </section>
+  <section class="search-panel" aria-label="搜索">
+    <div class="search-box">
+      <input id="search-input" type="search" placeholder="输入关键词…" autocomplete="off" aria-label="搜索关键词">
+    </div>
+    <p class="search-hint" data-search-hint>至少输入 2 个字符。</p>
+    <ol class="search-results" data-search-results></ol>
+  </section>
+  <script>
+    import { todayISO } from '../lib/progress';
+
+    const input = document.getElementById('search-input') as HTMLInputElement;
+    const hint = document.querySelector<HTMLElement>('[data-search-hint]')!;
+    const list = document.querySelector<HTMLElement>('[data-search-results]')!;
+    let pagefind: any = null;
+    let loadFailed = false;
+
+    async function ensurePagefind() {
+      if (pagefind || loadFailed) return pagefind;
+      try {
+        // 索引由构建后 pagefind 生成，必须运行时加载，不能让打包器解析
+        const url = (import.meta.env.BASE_URL || '/') + 'pagefind/pagefind.js';
+        pagefind = await import(/* @vite-ignore */ url);
+      } catch {
+        loadFailed = true;
+        hint.textContent = '搜索索引未生成（构建后可用：npm run build 会自动建立索引）。';
+      }
+      return pagefind;
+    }
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    input.addEventListener('input', () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(run, 180);
+    });
+
+    async function run() {
+      const q = input.value.trim();
+      list.replaceChildren();
+      if (q.length < 2) { if (!loadFailed) hint.textContent = '至少输入 2 个字符。'; return; }
+      const pf = await ensurePagefind();
+      if (!pf) return;
+      const res = await pf.search(q);
+      hint.textContent = `${res.results.length} 条结果`;
+      const top = await Promise.all(res.results.slice(0, 10).map((r: any) => r.data()));
+      for (const item of top) {
+        const li = document.createElement('li');
+        li.className = 'search-result';
+        const a = document.createElement('a');
+        a.href = item.url;
+        a.innerHTML = `<strong>${item.meta?.title ?? item.url}</strong>${item.excerpt ?? ''}`;
+        li.append(a);
+        list.append(li);
+      }
+      if (!top.length) {
+        const li = document.createElement('li');
+        li.className = 'search-result';
+        li.textContent = '没有匹配内容，换个关键词试试。';
+        list.append(li);
+      }
+    }
+
+    // 从 URL 带入 q= 并自动搜索
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) { input.value = q; run(); }
+    void todayISO;
+  </script>
+</Base>
