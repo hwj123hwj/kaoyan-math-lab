@@ -35,5 +35,5 @@ export const withBase = (path: string): string =>
   (import.meta.env.BASE_URL.replace(/\/?$/, '/')) + path.replace(/^\//, '');
 
 export function lessonPath(l: Lesson): string {
-  return withBase(`lesson/${l.id}`);
+  return withBase(`lesson/${l.id}/`);
 }

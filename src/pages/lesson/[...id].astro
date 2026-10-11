@@ -37,7 +37,7 @@ const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
 <Base title={`${lesson.data.title} · ${course.name} · 考研数学实验室`} description={lesson.data.subtitle}>
   <article class="lesson" data-lesson-id={lesson.id}>
     <nav class="breadcrumb" aria-label="面包屑">
-      <a href={`${import.meta.env.BASE_URL}course/${course.id}`}>{course.name}</a>
+      <a href={`${import.meta.env.BASE_URL}course/${course.id}/`}>{course.name}</a>
       <span>/</span>
       {chapter && <span>第 {chapter.num} 章 · {chapter.title}</span>}
       <span>/</span>

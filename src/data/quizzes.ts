@@ -518,4 +518,76 @@ export const quizzes: Record<string, QuizSet> = {
       },
     ],
   },
+  'prob-rv': {
+    id: 'prob-rv',
+    title: '一维随机变量练习 5 题',
+    questions: [
+      {
+        stem: '设 $P(X=k)=c\\left(\\dfrac{1}{2}\\right)^{k}$（$k=1,2,\\dots$），则 $c = ?$',
+        options: ['$\\dfrac{1}{2}$', '$1$', '$2$', '$\\dfrac{1}{4}$'],
+        answer: 1,
+        explain: '分布律必须归一化：$\\sum_{k=1}^{\\infty}c\\left(\\tfrac12\\right)^k=c\\cdot\\dfrac{1/2}{1-1/2}=c=1$。见到"求参数"先写 $\\sum p_k=1$。',
+      },
+      {
+        stem: '设 $X\\sim P(\\lambda)$ 且 $P(X=1)=P(X=2)$，则 $\\lambda = ?$',
+        options: ['$1$', '$2$', '$4$', '$\\dfrac{1}{2}$'],
+        answer: 1,
+        explain: '$\\lambda e^{-\\lambda}=\\dfrac{\\lambda^{2}e^{-\\lambda}}{2}$，两边约去 $\\lambda e^{-\\lambda}$ 得 $\\lambda=2$。泊松求参几乎都走"概率相等或成比"这条路。',
+      },
+      {
+        stem: '关于分布函数 $F(x)$，下列说法**错误**的是',
+        options: ['$F(x)$ 单调不减', '$F(x)$ 右连续', '$F(-\\infty)=0,\\ F(+\\infty)=1$', '$F(x)$ 处处连续'],
+        answer: 3,
+        explain: '分布函数只保证右连续，离散型的 $F$ 是阶梯函数、有跳跃。前三条是标准性质，"处处连续"只有连续型才具有。',
+      },
+      {
+        stem: '设 $X\\sim U(0,2)$，则 $P(0.5<X<1.5) = ?$',
+        options: ['$0.25$', '$0.5$', '$0.75$', '$1$'],
+        answer: 1,
+        explain: '均匀分布的概率就是长度比：$\\dfrac{1.5-0.5}{2-0}=0.5$。画数轴量长度，密度都懒得写。',
+      },
+      {
+        stem: '$X\\sim E(\\lambda)$（指数分布），已知设备已无故障运行了 $s$ 小时，则它再运行至少 $t$ 小时的概率是',
+        options: ['$P(X>t)$', '$P(X>s+t)$', '$1-P(X>t)$', '$P(X>t\\mid X<s)$'],
+        answer: 0,
+        explain: '指数分布的无记忆性：$P(X>s+t\\mid X>s)=P(X>t)$，与已运行多久无关。这正是"指数分布无老化"的概率含义，也是它与正态、均匀并列高频的原因。',
+      },
+    ],
+  },
+  'cal-vectors': {
+    id: 'cal-vectors',
+    title: '向量与空间解析几何练习 5 题',
+    questions: [
+      {
+        stem: '向量 $\\vec a=(1,2,-2)$ 与 $\\vec b=(2,x,1)$ 垂直，则 $x = ?$',
+        options: ['$0$', '$2$', '$-2$', '$1$'],
+        answer: 0,
+        explain: '垂直 $\\iff$ 点积为零：$1\\cdot2+2x+(-2)\\cdot1=2x=0$，得 $x=0$。',
+      },
+      {
+        stem: '$\\vec a=(1,0,0)$，$\\vec b=(0,2,0)$，则以 $\\vec a,\\vec b$ 为邻边的平行四边形面积是',
+        options: ['$1$', '$2$', '$4$', '$\\sqrt5$'],
+        answer: 1,
+        explain: '$\\vec a\\times\\vec b=(0,0,2)$，模长 $2$ 即面积。叉积的几何意义就是"有向面积"。',
+      },
+      {
+        stem: '向量 $\\vec a=(1,0,0)$，$\\vec b=(0,1,0)$，$\\vec c=(1,1,z)$ 共面，则 $z = ?$',
+        options: ['$0$', '$1$', '$2$', '$-1$'],
+        answer: 0,
+        explain: '共面 $\\iff$ 混合积为零：$\\vec a\\cdot(\\vec b\\times\\vec c)$ 按第一行展开恰为 $z$，令其为 $0$ 得 $z=0$。',
+      },
+      {
+        stem: '过点 $(1,1,1)$、以 $\\vec n=(2,1,-1)$ 为法向量的平面方程是',
+        options: ['$2x+y-z=2$', '$2x+y-z=0$', '$2x+y+z=3$', '$x+y-z=1$'],
+        answer: 0,
+        explain: '点法式 $2(x-1)+(y-1)-(z-1)=0$，整理得 $2x+y-z=2$。验算：把 $(1,1,1)$ 代回成立。',
+      },
+      {
+        stem: '直线 $\\dfrac{x}{1}=\\dfrac{y}{1}=\\dfrac{z}{1}$ 与平面 $x+y+z=1$ 的位置关系是',
+        options: ['直线垂直于平面', '直线平行于平面', '直线在平面内', '斜交'],
+        answer: 0,
+        explain: '直线方向向量 $\\vec s=(1,1,1)$ 与平面法向量 $\\vec n=(1,1,1)$ 平行，故直线垂直于平面（点 $(0,0,0)$ 不在平面上，是垂直相交而非含于平面）。位置关系题第一步永远是"找出 $\\vec s$ 与 $\\vec n$"。',
+      },
+    ],
+  },
 };

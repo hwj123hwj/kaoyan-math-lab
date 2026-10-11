@@ -20,10 +20,10 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
     <p class="lead">每个核心概念配一个能动手的实验室：拖动点、调参数、跑模拟，亲眼看见定理发生。看完就练，练完就算分。</p>
     <div class="hero-actions">
       <a class="button primary" href={firstLessonPath}>从第一课开始 →</a>
-      <a class="button" href={`${base}daily`}>每日五题</a>
-      <a class="button" href={`${base}review`} data-review-link>错题复习<template data-review-badge></template></a>
-      <a class="button" href={`${base}labs`} hidden data-continue-link>继续上次 →</a>
-      <a class="button" href={`${base}formulas`}>公式速查</a>
+      <a class="button" href={`${base}daily/`}>每日五题</a>
+      <a class="button" href={`${base}review/`} data-review-link>错题复习<template data-review-badge></template></a>
+      <a class="button" href={`${base}labs/`} hidden data-continue-link>继续上次 →</a>
+      <a class="button" href={`${base}formulas/`}>公式速查</a>
     </div>
     <div class="stat-row" aria-label="学习统计">
       <div class="stat"><b data-countdown>— 天</b><span>距初试（{EXAM_DATE_NOTE}）</span></div>
@@ -36,11 +36,11 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
   <section class="today-panel" aria-labelledby="today-title">
     <div class="section-head" style="margin:0 0 10px"><h2 id="today-title">今日任务</h2><span data-today-date></span></div>
     <div class="today-grid">
-      <a class="today-item" href={`${base}daily`} data-today-daily>
+      <a class="today-item" href={`${base}daily/`} data-today-daily>
         <strong>每日五题</strong>
         <span data-daily-state>还没做 · 约 10 分钟</span>
       </a>
-      <a class="today-item" href={`${base}review`} data-today-review>
+      <a class="today-item" href={`${base}review/`} data-today-review>
         <strong>错题复习</strong>
         <span data-review-state>错题本还是空的</span>
       </a>
@@ -73,7 +73,7 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
     <div class="section-head"><h2 id="labs-title">{labs.length} 个实验室</h2><span>全部在浏览器本地运行 · 不联网计算</span></div>
     <div class="lab-grid">
       {labs.map((lab) => (
-        <a class="lab-card" href={`${base}labs#${lab.id}`}>
+        <a class="lab-card" href={`${base}labs/#${lab.id}`}>
           <span class="lab-course">{lab.course === 'calculus' ? '高数' : lab.course === 'linear-algebra' ? '线代' : '概率'}</span>
           <h3>{lab.title}</h3>
           <p>{lab.blurb}</p>
