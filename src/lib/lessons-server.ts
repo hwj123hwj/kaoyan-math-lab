@@ -30,6 +30,10 @@ export async function lessonsOf(courseId: string, chapterId: string): Promise<Le
   return (await allLessons()).filter((l) => l.data.course === courseId && l.data.chapter === chapterId);
 }
 
+/** 站内路径统一跟随 BASE_URL，保持子路径部署可用 */
+export const withBase = (path: string): string =>
+  (import.meta.env.BASE_URL.replace(/\/?$/, '/')) + path.replace(/^\//, '');
+
 export function lessonPath(l: Lesson): string {
-  return `/lesson/${l.id}`;
+  return withBase(`lesson/${l.id}`);
 }

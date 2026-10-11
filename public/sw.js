@@ -2,7 +2,10 @@
 const CACHE = 'kaoyan-math-v1';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(['/', '/daily', '/review', '/formulas'])));
+  // 预缓存路径相对于 SW scope，兼容子路径部署
+  const scope = new URL(self.registration.scope);
+  const u = (p) => new URL(p, scope).href;
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll([u('./'), u('./daily'), u('./review'), u('./formulas')])));
   self.skipWaiting();
 });
 

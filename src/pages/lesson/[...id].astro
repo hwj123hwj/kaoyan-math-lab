@@ -37,7 +37,7 @@ const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
 <Base title={`${lesson.data.title} · ${course.name} · 考研数学实验室`} description={lesson.data.subtitle}>
   <article class="lesson" data-lesson-id={lesson.id}>
     <nav class="breadcrumb" aria-label="面包屑">
-      <a href={`/course/${course.id}`}>{course.name}</a>
+      <a href={`${import.meta.env.BASE_URL}course/${course.id}`}>{course.name}</a>
       <span>/</span>
       {chapter && <span>第 {chapter.num} 章 · {chapter.title}</span>}
       <span>/</span>
@@ -95,6 +95,6 @@ const next = idx >= 0 && idx < ordered.length - 1 ? ordered[idx + 1] : null;
     checkbox.checked = Boolean(p0.completed[lessonId]);
     checkbox.addEventListener('change', () => { recordLesson(lessonId, checkbox.checked); });
     // 记住最后访问的课时，首页“继续”用
-    try { localStorage.setItem('kaoyan-math-last-lesson', `/lesson/${lessonId}`); } catch { /* 存储不可用时忽略 */ }
+    try { localStorage.setItem('kaoyan-math-last-lesson', (import.meta.env.BASE_URL.replace(/\/?$/, '/')) + `lesson/${lessonId}`); } catch { /* 存储不可用时忽略 */ }
   </script>
 </Base>

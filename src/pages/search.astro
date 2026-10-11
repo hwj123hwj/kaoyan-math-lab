@@ -27,7 +27,7 @@ import Base from '../layouts/Base.astro';
       if (pagefind || loadFailed) return pagefind;
       try {
         // 索引由构建后 pagefind 生成，必须运行时加载，不能让打包器解析
-        const url = (import.meta.env.BASE_URL || '/') + 'pagefind/pagefind.js';
+        const url = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/') + 'pagefind/pagefind.js';
         pagefind = await import(/* @vite-ignore */ url);
       } catch {
         loadFailed = true;
@@ -50,12 +50,13 @@ import Base from '../layouts/Base.astro';
       if (!pf) return;
       const res = await pf.search(q);
       hint.textContent = `${res.results.length} 条结果`;
+      const siteBase = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/');
       const top = await Promise.all(res.results.slice(0, 10).map((r: any) => r.data()));
       for (const item of top) {
         const li = document.createElement('li');
         li.className = 'search-result';
         const a = document.createElement('a');
-        a.href = item.url;
+        a.href = item.url.startsWith(siteBase) ? item.url : siteBase + item.url.replace(/^\//, '');
         a.innerHTML = `<strong>${item.meta?.title ?? item.url}</strong>${item.excerpt ?? ''}`;
         li.append(a);
         list.append(li);

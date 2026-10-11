@@ -8,6 +8,8 @@ interface Props {
 }
 
 const { title, description = '考研数学实验室：高数、线代、概率论的可视化课堂与随堂练习。' } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/?$/, '/');
+const withBase = (p: string) => base + p.replace(/^\//, '');
 const nav = [
   { href: '/', label: '首页' },
   { href: '/course/calculus', label: '高数' },
@@ -26,16 +28,16 @@ const nav = [
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{title}</title>
   <meta name="description" content={description}>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href={`${base}favicon.svg`} type="image/svg+xml">
+  <link rel="manifest" href={`${base}manifest.webmanifest`}>
   <meta name="theme-color" content="#3b3f8f">
 </head>
 <body>
 <a class="skip" href="#main">跳到主要内容</a>
 <header class="header">
-  <a class="brand" href="/"><span class="brand-symbol">∫</span><span>考研数学实验室 <small>高数 · 线代 · 概率</small></span></a>
+  <a class="brand" href={base}><span class="brand-symbol">∫</span><span>考研数学实验室 <small>高数 · 线代 · 概率</small></span></a>
   <nav aria-label="主导航">
-    {nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    {nav.map((item) => <a href={withBase(item.href)}>{item.label}</a>)}
   </nav>
 </header>
 <main id="main">
@@ -48,7 +50,7 @@ const nav = [
 <script>
   // 仅在生产构建注册离线缓存；dev 环境不注册避免热更新被缓存
   if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-    const swUrl = (import.meta.env.BASE_URL || '/') + 'sw.js';
+    const swUrl = (import.meta.env.BASE_URL.replace(/\/?$/, '/')) + 'sw.js';
     window.addEventListener('load', () => { navigator.serviceWorker.register(swUrl).catch(() => {}); });
   }
 </script>

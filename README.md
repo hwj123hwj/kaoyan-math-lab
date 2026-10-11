@@ -8,7 +8,7 @@
 
 ```bash
 npm install
-npm run dev        # 开发服务器（搜索在 dev 下不可用，索引由构建生成）
+npm run dev        # 开发服务器，挂在 http://localhost:4321/kaoyan-math-lab/（base 与线上一致；搜索在 dev 下不可用，索引由构建生成）
 npm run build      # astro build + pagefind 索引 → dist/
 npm run preview    # 预览构建产物
 npm test           # 数据完整性测试（node --test）
@@ -62,5 +62,5 @@ npm run check      # astro check 类型检查
 ## 部署
 
 - `dist/` 为纯静态产物，任意静态服务器可用；nginx 注意给 `.mjs` 配 `application/javascript`。
-- GitHub Pages workflow 已就绪（`.github/workflows/pages.yml`）：推送到 GitHub 远端并在仓库设置里启用 Pages 后自动生效。**若部署在仓库子路径**（`用户名.github.io/仓库名/`），需在 `astro.config.mjs` 里加 `base: '/仓库名'`；搜索与 SW 路径已按 `BASE_URL` 自适应。
+- 已配置 GitHub Pages 部署（`.github/workflows/pages.yml`）：`astro.config.mjs` 里 `base: '/kaoyan-math-lab'`，站点地址 `https://hwj123hwj.github.io/kaoyan-math-lab/`。站内链接全部跟随 `BASE_URL`，改仓库名/子路径时同步改 base 即可。
 - 尚未配置 Git 远端；需要上线时再建远端并推送。
