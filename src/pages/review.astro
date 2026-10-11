@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import { buildBank } from '../lib/bank';
+
+const bank = buildBank();
+---
+<Base title="错题复习 · 考研数学实验室" description="按间隔重复安排的错题复习：今天到期的错题，答对升档，连续答对毕业。">
+  <section class="hero">
+    <p class="kicker">间隔重复</p>
+    <h1>错题复习</h1>
+    <p class="lead">错题在答错的第二天回来，答对就按 1 → 3 → 7 → 15 → 30 天升档，连续答对五次毕业。比重复刷会做的题省一半时间。</p>
+    <div class="review-status" data-review-status aria-live="polite"></div>
+  </section>
+
+  <section class="quiz" id="quiz" aria-label="错题复习练习" hidden data-review-quiz>
+    <div class="quiz-head">
+      <h2 data-review-title>今日到期错题</h2>
+      <span>选完立即判分 · 答对升档、答错回炉</span>
+    </div>
+    <div class="quiz-body-root" data-quiz-root>
+      <div class="quiz-dots" data-quiz-dots aria-hidden="true"></div>
+      <div data-quiz-body></div>
+      <div class="quiz-actions">
+        <button type="button" class="button primary" data-quiz-next hidden>下一题 →</button>
+      </div>
+    </div>
+    <p class="quiz-storage-note" data-review-note></p>
+  </section>
+
+  <script type="application/json" data-bank set:html={JSON.stringify(bank).replace(/</g, '\\u003c')} />
+  <script>
+    import { mountQuiz, type QuizQuestionPayload } from '../lib/quiz-engine';
+    import { loadProgress, recordReviewResults, todayISO } from '../lib/progress';
+
+    const bank = (JSON.parse(document.querySelector<HTMLScriptElement>('[data-bank]')!.textContent || '{"questions":[]}').questions) as QuizQuestionPayload[];
+    const status = document.querySelector<HTMLElement>('[data-review-status]')!;
+    const quizSection = document.querySelector<HTMLElement>('[data-review-quiz]')!;
+    const title = document.querySelector<HTMLElement>('[data-review-title]')!;
+    const note = document.querySelector<HTMLElement>('[data-review-note]')!;
+    let started = false;
+
+    function render() {
+      const p = loadProgress();
+      const entries = Object.entries(p.wrong);
+      const now = Date.now();
+      const due = entries.filter(([, it]) => it.due <= now);
+      const nextDue = entries.length
+        ? new Date(Math.min(...entries.map(([, it]) => it.due))).toISOString().slice(0, 10)
+        : null;
+      status.replaceChildren();
+      const line = document.createElement('p');
+      line.className = 'review-line';
+      if (!entries.length) {
+        line.textContent = '错题本是空的。去做任意课时的随堂练习，答错的题会自动进错题本。';
+        status.append(line);
+        return;
+      }
+      line.textContent = due.length
+        ? `今天到期 ${due.length} 道，错题本共 ${entries.length} 道。`
+        : `今天没有到期的复习（最近一批 ${nextDue} 到期）。错题本共 ${entries.length} 道，可提前复习。`;
+      status.append(line);
+      const actions = document.createElement('div');
+      actions.className = 'hero-actions';
+      if (due.length) {
+        const b = document.createElement('button');
+        b.className = 'button primary'; b.type = 'button';
+        b.textContent = `开始复习（${Math.min(due.length, 15)} 题）`;
+        b.addEventListener('click', () => start(due.map(([ref]) => ref)));
+        actions.append(b);
+      }
+      if (entries.length > due.length) {
+        const b = document.createElement('button');
+        b.className = 'button'; b.type = 'button';
+        b.textContent = `提前复习全部（${entries.length} 题）`;
+        b.addEventListener('click', () => start(entries.map(([ref]) => ref)));
+        actions.append(b);
+      }
+      status.append(actions);
+    }
+
+    function start(refs: string[]) {
+      if (started) return;
+      const byRef = new Map(bank.map((q) => [q.ref, q]));
+      const questions = refs.map((ref) => byRef.get(ref)).filter((q): q is QuizQuestionPayload => Boolean(q)).slice(0, 15);
+      if (!questions.length) { note.textContent = '错题数据与题库不匹配（可能是题库更新过），请清空进度后重试。'; return; }
+      started = true;
+      status.hidden = true;
+      quizSection.hidden = false;
+      title.textContent = `错题复习 · ${questions.length} 题`;
+      mountQuiz(
+        document.querySelector<HTMLElement>('[data-quiz-root]')!,
+        { id: `review-${todayISO()}-${questions.length}`, title: '错题复习', questions },
+        (score, total, results) => {
+          const p = recordReviewResults(results);
+          const left = Object.keys(p.wrong).length;
+          note.textContent = `本轮答对 ${score} / ${total}。${left ? `错题本还剩 ${left} 道，按到期日期回来。` : '错题本清空，全部毕业！'}`;
+        },
+      );
+    }
+
+    render();
+  </script>
+</Base>

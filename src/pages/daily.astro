@@ -1,0 +1,63 @@
+---
+import Base from '../layouts/Base.astro';
+import { buildBank } from '../lib/bank';
+
+const bank = buildBank();
+---
+<Base title="每日五题 · 考研数学实验室" description="每天五道题，跨三门课轮转；十分钟热身，保持手感。">
+  <section class="hero">
+    <p class="kicker">今日份</p>
+    <h1>每日五题</h1>
+    <p class="lead">按日期从全题库轮转抽取，三门课都会被翻牌子。做完记录当日成绩；答错的题自动进错题本，明天复习见。</p>
+    <p class="daily-date" data-daily-date aria-live="polite"></p>
+  </section>
+
+  <section class="quiz" id="quiz" aria-label="每日五题" data-daily-quiz>
+    <div class="quiz-head">
+      <h2 data-daily-title>今日五题</h2>
+      <span>一天一套，题目人人相同</span>
+    </div>
+    <div class="quiz-body-root" data-quiz-root>
+      <div class="quiz-dots" data-quiz-dots aria-hidden="true"></div>
+      <div data-quiz-body></div>
+      <div class="quiz-actions">
+        <button type="button" class="button primary" data-quiz-next hidden>下一题 →</button>
+      </div>
+    </div>
+    <p class="quiz-storage-note" data-daily-note></p>
+  </section>
+
+  <script type="application/json" data-bank set:html={JSON.stringify(bank).replace(/</g, '\\u003c')} />
+  <script>
+    import { mountQuiz } from '../lib/quiz-engine';
+    import { loadProgress, recordDaily, todayISO } from '../lib/progress';
+
+    const bank = (JSON.parse(document.querySelector<HTMLScriptElement>('[data-bank]')!.textContent || '{"questions":[]}').questions) as { ref: string; stem: string; options: string[]; answer: number; explain: string; difficulty: string }[];
+    const date = todayISO();
+    document.querySelector<HTMLElement>('[data-daily-date]')!.textContent = date;
+
+    // 按日期确定性轮转：同一天所有人抽到同一套
+    const dayNumber = Math.floor(new Date(`${date}T00:00:00`).getTime() / 86400000);
+    const n = 5;
+    const offset = ((dayNumber * n) % bank.length + bank.length) % bank.length;
+    const questions = Array.from({ length: Math.min(n, bank.length) }, (_, i) => bank[(offset + i) % bank.length]);
+
+    const p0 = loadProgress();
+    const done = p0.daily[date];
+    if (done) {
+      document.querySelector<HTMLElement>('[data-daily-note]')!.textContent = `今日已完成：${done.score} / ${done.total}。可以再刷一遍，分数不会重复累计。`;
+    }
+    document.querySelector<HTMLElement>('[data-daily-title]')!.textContent = `今日五题 · ${date}`;
+
+    mountQuiz(
+      document.querySelector<HTMLElement>('[data-quiz-root]')!,
+      { id: `daily-${date}`, title: `每日五题 ${date}`, questions },
+      (score, total, results) => {
+        const p = recordDaily(date, score, total, results);
+        const wrong = results.filter((r) => !r.correct && r.ref).length;
+        document.querySelector<HTMLElement>('[data-daily-note]')!.textContent =
+          `今日成绩 ${score} / ${total}（累计得分 ${p.xp}）。${wrong ? `${wrong} 道错题已进错题本。` : '全对，明天见。'}`;
+      },
+    );
+  </script>
+</Base>

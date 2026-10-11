@@ -2,13 +2,13 @@
 import Base from '../layouts/Base.astro';
 import { courses } from '../data/courses';
 import { labs } from '../data/labs';
+import { EXAM_DATE, EXAM_DATE_NOTE, PHASES } from '../data/site';
 import { allLessons, lessonPath } from '../lib/lessons-server';
 
 const lessons = await allLessons();
 const lessonCountByCourse = new Map<string, number>();
 for (const l of lessons) lessonCountByCourse.set(l.data.course, (lessonCountByCourse.get(l.data.course) ?? 0) + 1);
 
-// 交给浏览器端进度脚本
 const lessonIndex = lessons.map((l) => ({ id: l.id, course: l.data.course, title: l.data.title }));
 const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
 ---
@@ -19,15 +19,36 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
     <p class="lead">每个核心概念配一个能动手的实验室：拖动点、调参数、跑模拟，亲眼看见定理发生。看完就练，练完就算分。</p>
     <div class="hero-actions">
       <a class="button primary" href={firstLessonPath}>从第一课开始 →</a>
+      <a class="button" href="/daily">每日五题</a>
+      <a class="button" href="/review" data-review-link>错题复习<template data-review-badge></template></a>
       <a class="button" href="/labs" hidden data-continue-link>继续上次 →</a>
-      <a class="button" href="/labs">直达实验室</a>
       <a class="button" href="/formulas">公式速查</a>
     </div>
     <div class="stat-row" aria-label="学习统计">
+      <div class="stat"><b data-countdown>— 天</b><span>距初试（{EXAM_DATE_NOTE}）</span></div>
       <div class="stat"><b id="stat-streak">0 天</b><span>连续学习</span></div>
       <div class="stat"><b id="stat-xp">0 分</b><span>练习累计得分</span></div>
       <div class="stat"><b id="stat-lessons">0 / {lessons.length}</b><span>已完成课时</span></div>
-      <div class="stat"><b>{labs.length} 个</b><span>可动手实验室</span></div>
+    </div>
+  </section>
+
+  <section class="today-panel" aria-labelledby="today-title">
+    <div class="section-head" style="margin:0 0 10px"><h2 id="today-title">今日任务</h2><span data-today-date></span></div>
+    <div class="today-grid">
+      <a class="today-item" href="/daily" data-today-daily>
+        <strong>每日五题</strong>
+        <span data-daily-state>还没做 · 约 10 分钟</span>
+      </a>
+      <a class="today-item" href="/review" data-today-review>
+        <strong>错题复习</strong>
+        <span data-review-state>错题本还是空的</span>
+      </a>
+      <div class="today-item" data-today-phase>
+        <strong data-phase-name>—</strong>
+        <span data-phase-desc></span>
+        <progress data-phase-progress max="100" value="0"></progress>
+        <span class="course-progress-label"><span>阶段进度</span><span data-phase-pct>—</span></span>
+      </div>
     </div>
   </section>
 
@@ -48,7 +69,7 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
   </section>
 
   <section aria-labelledby="labs-title">
-    <div class="section-head"><h2 id="labs-title">五个实验室</h2><span>全部在浏览器本地运行 · 不联网计算</span></div>
+    <div class="section-head"><h2 id="labs-title">{labs.length} 个实验室</h2><span>全部在浏览器本地运行 · 不联网计算</span></div>
     <div class="lab-grid">
       {labs.map((lab) => (
         <a class="lab-card" href={`/labs#${lab.id}`}>
@@ -65,28 +86,55 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
     <div class="howto">
       <div><h3>① 看</h3><p>读一个课时的正文：直觉 → 定义 → 例题精讲。例题全部给出完整过程，别跳。</p></div>
       <div><h3>② 动手</h3><p>把课时里的实验室玩到能"预测结果"：不看屏幕说出调参后会发生什么，才算看懂。</p></div>
-      <div><h3>③ 刷</h3><p>做随堂练习，错题读解析。得分会累计，最佳成绩会被记录。</p></div>
-      <div><h3>④ 回</h3><p>隔天回来重做一遍同题组。间隔重复比一次刷十题记得牢。</p></div>
+      <div><h3>③ 刷</h3><p>做随堂练习，错题自动进错题本；每天 5 道每日题保持手感。</p></div>
+      <div><h3>④ 回</h3><p>错题按 1 → 3 → 7 → 15 → 30 天的节奏回来复习，答对升档，连续答对毕业。</p></div>
     </div>
   </section>
 
   <script type="application/json" data-lesson-index set:html={JSON.stringify(lessonIndex).replace(/</g, '\\u003c')} />
+  <script type="application/json" data-site-config set:html={JSON.stringify({ examDate: EXAM_DATE, phases: PHASES }).replace(/</g, '\\u003c')} />
   <script>
-    import { loadProgress, computeStreak } from '../lib/progress';
+    import { loadProgress, computeStreak, todayISO } from '../lib/progress';
 
+    const config = JSON.parse(document.querySelector<HTMLScriptElement>('[data-site-config]')!.textContent || '{}') as { examDate: string; phases: { name: string; until: string; desc: string }[] };
     const index = JSON.parse(document.querySelector<HTMLScriptElement>('[data-lesson-index]')?.textContent || '[]') as { id: string; course: string }[];
     const p = loadProgress();
     const done = index.filter((l) => p.completed[l.id]).length;
+
     document.getElementById('stat-streak')!.textContent = `${computeStreak(p.days)} 天`;
     document.getElementById('stat-xp')!.textContent = `${p.xp} 分`;
     document.getElementById('stat-lessons')!.textContent = `${done} / ${index.length}`;
 
-    const last = (() => { try { return localStorage.getItem('kaoyan-math-last-lesson'); } catch { return null; } })();
-    if (last) {
-      const link = document.querySelector<HTMLAnchorElement>('[data-continue-link]');
-      if (link) { link.href = last; link.hidden = false; }
-    }
+    // 倒计时与阶段
+    const DAY = 86400000;
+    const examMs = new Date(`${config.examDate}T00:00:00`).getTime();
+    const daysLeft = Math.max(0, Math.ceil((examMs - Date.now()) / DAY));
+    document.querySelector<HTMLElement>('[data-countdown]')!.textContent = `${daysLeft} 天`;
+    document.querySelector<HTMLElement>('[data-today-date]')!.textContent = todayISO();
 
+    const today = todayISO();
+    const phase = config.phases.find((ph) => ph.until >= today) ?? config.phases[config.phases.length - 1];
+    document.querySelector<HTMLElement>('[data-phase-name]')!.textContent = `${phase.name}阶段（至 ${phase.until}）`;
+    document.querySelector<HTMLElement>('[data-phase-desc]')!.textContent = phase.desc;
+    const prevUntil = config.phases[config.phases.indexOf(phase) - 1]?.until;
+    const startMs = prevUntil ? new Date(`${prevUntil}T00:00:00`).getTime() + DAY : examMs - 400 * DAY;
+    const pct = Math.max(0, Math.min(100, Math.round(((Date.now() - startMs) / (examMs - startMs)) * 100)));
+    const bar = document.querySelector<HTMLProgressElement>('[data-phase-progress]')!;
+    bar.value = pct;
+    document.querySelector<HTMLElement>('[data-phase-pct]')!.textContent = `${pct}%`;
+
+    // 今日任务
+    const daily = p.daily[today];
+    document.querySelector<HTMLElement>('[data-daily-state]')!.textContent = daily
+      ? `已完成 ${daily.score} / ${daily.total}，可再刷一遍`
+      : '还没做 · 约 10 分钟';
+    const wrongAll = Object.keys(p.wrong).length;
+    const dueNow = Object.values(p.wrong).filter((it) => it.due <= Date.now()).length;
+    document.querySelector<HTMLElement>('[data-review-state]')!.textContent = wrongAll
+      ? dueNow ? `今天到期 ${dueNow} 道（共 ${wrongAll} 道在册）` : `今天没有到期（共 ${wrongAll} 道在册）`
+      : '错题本还是空的';
+
+    // 课程进度
     for (const courseId of ['calculus', 'linear-algebra', 'probability']) {
       const ids = index.filter((l) => l.course === courseId);
       const bar = document.querySelector<HTMLProgressElement>(`[data-course-progress="${courseId}"]`);
@@ -94,6 +142,12 @@ const firstLessonPath = lessons.length ? lessonPath(lessons[0]) : '/';
       const pct = ids.length ? Math.round((ids.filter((l) => p.completed[l.id]).length / ids.length) * 100) : 0;
       if (bar) bar.value = pct;
       if (label) label.textContent = `${pct}%`;
+    }
+
+    const last = (() => { try { return localStorage.getItem('kaoyan-math-last-lesson'); } catch { return null; } })();
+    if (last) {
+      const link = document.querySelector<HTMLAnchorElement>('[data-continue-link]');
+      if (link) { link.href = last; link.hidden = false; }
     }
   </script>
 </Base>

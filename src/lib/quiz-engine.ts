@@ -7,6 +7,16 @@ export interface QuizQuestionPayload {
   options: string[];
   answer: number;
   explain: string;
+  /** 错题引用 `${quizId}#${index}`，复习调度用 */
+  ref?: string;
+  /** 难度标签，仅展示用 */
+  difficulty?: string;
+}
+
+export interface QuizAnswerResult {
+  index: number;
+  correct: boolean;
+  ref?: string;
 }
 
 export interface QuizPayload {
@@ -17,11 +27,12 @@ export interface QuizPayload {
 
 const stateMark = { correct: '✔', wrong: '✘' } as const;
 
-export function mountQuiz(root: HTMLElement, payload: QuizPayload, onFinish?: (score: number, total: number) => void): void {
+export function mountQuiz(root: HTMLElement, payload: QuizPayload, onFinish?: (score: number, total: number, results: QuizAnswerResult[]) => void): void {
   let index = 0;
   let score = 0;
   let locked = false;
   let finished = false;
+  const results: QuizAnswerResult[] = [];
 
   const dots = root.querySelector<HTMLElement>('[data-quiz-dots]')!;
   const body = root.querySelector<HTMLElement>('[data-quiz-body]')!;
@@ -74,8 +85,9 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, onFinish?: (s
     locked = true;
     const q = payload.questions[index];
     const correct = oi === q.answer;
-    if (correct) { score++; dotResult(index, '1'); }
-    else dotResult(index, '0');
+    if (correct) score++;
+    results.push({ index, correct, ref: q.ref });
+    dotResult(index, correct ? '1' : '0');
 
     const options = body.querySelectorAll<HTMLButtonElement>('.quiz-option');
     options.forEach((b, i) => {
@@ -108,7 +120,7 @@ export function mountQuiz(root: HTMLElement, payload: QuizPayload, onFinish?: (s
     body.innerHTML = `<p class="quiz-score-line"><strong>${score}</strong> / ${total}</p><p class="quiz-score-note">${verdict}</p>`;
     next.hidden = false;
     next.textContent = '再练一次';
-    onFinish?.(score, total);
+    onFinish?.(score, total, results);
   }
 
   next.addEventListener('click', () => {

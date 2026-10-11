@@ -1,25 +1,21 @@
 ---
-import katex from 'katex';
 import { quizzes } from '../data/quizzes';
+import { tex } from '../lib/tex';
 
 interface Props { quizId: string }
 const { quizId } = Astro.props;
 const set = quizzes[quizId];
 
-/** 把题面与选项中的 $...$ 渲染成 KaTeX HTML（构建期完成，运行时零渲染开销） */
-function tex(input: string): string {
-  return input.replace(/\$([^$]+)\$/g, (_, expr: string) =>
-    katex.renderToString(expr, { throwOnError: true, output: 'html' }));
-}
-
 const payload = set ? {
   id: set.id,
   title: set.title,
-  questions: set.questions.map((q) => ({
+  questions: set.questions.map((q, i) => ({
     stem: tex(q.stem),
     options: q.options.map(tex),
     answer: q.answer,
     explain: tex(q.explain),
+    ref: `${set.id}#${i}`,
+    difficulty: q.difficulty ?? 'basic',
   })),
 } : null;
 ---
@@ -42,7 +38,7 @@ const payload = set ? {
 
 <script>
 import { mountQuiz } from '../lib/quiz-engine';
-import { recordQuiz } from '../lib/progress';
+import { recordQuizAttempt } from '../lib/progress';
 
 const root = document.querySelector<HTMLElement>('[data-quiz-root]');
 const payloadEl = document.querySelector<HTMLScriptElement>('[data-quiz-payload]');
@@ -50,10 +46,13 @@ if (root && payloadEl) {
   try {
     const payload = JSON.parse(payloadEl.textContent || 'null');
     if (payload?.questions?.length) {
-      mountQuiz(root, payload, (score) => {
-        const saved = recordQuiz(payload.id, score);
+      mountQuiz(root, payload, (score, _total, results) => {
+        const saved = recordQuizAttempt(payload.id, score, results);
+        const wrongCount = results.filter((r) => !r.correct && r.ref).length;
         const note = document.querySelector<HTMLElement>('[data-quiz-storage-note]');
-        if (note) note.textContent = saved ? `最佳成绩已记录：${saved.quiz[payload.id]?.best ?? score} / ${payload.questions.length}` : '进度未能保存，刷新后可能丢失。';
+        if (note) note.textContent = saved
+          ? `最佳成绩 ${saved.quiz[payload.id]?.best ?? score} / ${payload.questions.length}${wrongCount ? ` · ${wrongCount} 道错题已进错题本，明天来复习` : ''}`
+          : '进度未能保存，刷新后可能丢失。';
       });
     }
   } catch { /* 题库数据异常时不渲染交互，不影响正文 */ }
